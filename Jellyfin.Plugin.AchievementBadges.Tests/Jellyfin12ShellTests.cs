@@ -161,6 +161,27 @@ public class Jellyfin12ShellTests
         Assert.True(watchdog >= 0 && reapplied > watchdog);
     }
 
+    [Theory]
+    [InlineData("shell.js")]
+    [InlineData("navinject.js")]
+    [InlineData("profileinject.js")]
+    [InlineData("profile-card.html")]
+    [InlineData("profile-card-blades.html")]
+    [InlineData("profile-card-metro.html")]
+    [InlineData("configPage.html")]
+    [InlineData("standalone.js")]
+    [InlineData("enhance.js")]
+    [InlineData("Pages.index.html")]
+    public void NoAssetLinksToTheDeprecatedBangRoutes(string asset)
+    {
+        // jellyfin-web 12 still redirects #!/ routes, with a console
+        // warning that the format will stop working; the routes have been
+        // #/ since 10.9. sidebar.js keeps both spellings on purpose in its
+        // login route checks, so it is not in this list.
+        var text = ReadEmbedded(asset);
+        Assert.DoesNotContain("#!/", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheLegacyDrawerInjectionStays()
     {

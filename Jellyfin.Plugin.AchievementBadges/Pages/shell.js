@@ -1,5 +1,5 @@
 (function () {
-    const ROUTE = "#!/achievements";
+    const ROUTE = "#/achievements";
     const ROOT_ID = "achievementBadgesShellRoot";
     const PROFILE_ROOT_ID = "achievementBadgesProfileShowcase";
     const HOME_WIDGET_ID = "achievementBadgesHomeWidget";
@@ -800,7 +800,7 @@
 
         const item = document.createElement("a");
         item.id = SIDEBAR_ID;
-        item.href = "/web/index.html#!/achievements";
+        item.href = "/web/index.html#/achievements";
         item.className = "navMenuOption";
         item.style.display = "flex";
         item.style.alignItems = "center";
@@ -815,7 +815,7 @@
 
         item.addEventListener("click", function (event) {
             event.preventDefault();
-            window.location.hash = "#!/achievements";
+            window.location.hash = "#/achievements";
         });
     }
 
@@ -831,7 +831,7 @@
             <div class="ab-wrap">
                 <div class="ab-topbar">
                     <h2 style="margin:0;">Achievements</h2>
-                    <a class="ab-back" href="/web/index.html#!/home">
+                    <a class="ab-back" href="/web/index.html#/home">
                         <span>←</span>
                         <span>Back Home</span>
                     </a>
@@ -1687,7 +1687,7 @@
         wrapper.innerHTML =
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:1em;flex-wrap:wrap;margin-bottom:0.8em;">' +
                 '<div style="font-size:1.05em;font-weight:700;">🏅 Achievements Showcase</div>' +
-                '<a href="/web/index.html#!/achievements" style="color:#7dd3fc;text-decoration:none;font-weight:600;">Open Achievements</a>' +
+                '<a href="/web/index.html#/achievements" style="color:#7dd3fc;text-decoration:none;font-weight:600;">Open Achievements</a>' +
             '</div>' +
             '<div id="achievementBadgesProfileItems" class="ab-profile-grid"></div>';
 
@@ -1768,7 +1768,7 @@
             <div class="ab-home-card">
                 <div class="ab-home-top">
                     <div style="font-size:1.05em;font-weight:700;">🏅 Achievements</div>
-                    <a href="/web/index.html#!/achievements" class="ab-btn">Open Achievements</a>
+                    <a href="/web/index.html#/achievements" class="ab-btn">Open Achievements</a>
                 </div>
 
                 <div class="ab-home-grid">
@@ -1849,8 +1849,8 @@
         const hash = window.location.hash || "";
         const isHomeLike =
             hash === "" ||
-            hash === "#!/home" ||
-            hash.startsWith("#!/home?");
+            hash === "#/home" ||
+            hash.startsWith("#/home?");
 
         if (!isHomeLike) {
             const existing = document.getElementById(HOME_WIDGET_ID);
