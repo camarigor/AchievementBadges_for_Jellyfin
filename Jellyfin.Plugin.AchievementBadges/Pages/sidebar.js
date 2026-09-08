@@ -4,6 +4,7 @@
     var SIDEBAR_ID='ab-sidebar-entry';
     var SHOWCASE_ID='ab-sidebar-showcase';
     var HEADER_ID='ab-header-badges';
+    var USER_MENU_ID='ab-user-menu-entry';
 
     /* v1.8.54: propagate the user's Classic/Revamp preference globally so the
        Friends drawer (mounted on body, on every Jellyfin page) follows the
@@ -143,6 +144,11 @@
         var hdr = document.getElementById(HEADER_ID);
         if (hdr){
             hdr.title = tr('sidebar.equipped_badges', 'Equipped Badges');
+        }
+        var um = document.getElementById(USER_MENU_ID);
+        if (um){
+            var umText = um.querySelector('.MuiListItemText-root .MuiTypography-root') || um.querySelector('.MuiListItemText-root');
+            if (umText) umText.textContent = tr('sidebar.achievements', 'Achievements');
         }
     }
 
@@ -325,6 +331,13 @@
             if (_showcaseEnabled === false) return; // admin or user disabled
             if(document.getElementById(HEADER_ID)){ return; }
             var headerRight=document.querySelector('.headerRight')||document.querySelector('.skinHeader .headerButton:last-child');
+            if(!headerRight){
+                // [Jellyfin 12] The modern layout keeps .skinHeader in the DOM
+                // but hidden and empty. Its toolbar is MUI: sit right before
+                // the box that holds the avatar button.
+                var avatarBtn=document.querySelector('button[aria-controls="app-user-menu"]');
+                if(avatarBtn && avatarBtn.parentElement && avatarBtn.parentElement.parentElement){ headerRight=avatarBtn.parentElement; }
+            }
             if(!headerRight){ return; }
             console.log('[AchievementBadges] injectHeader: found header, adding badges container');
             var container=document.createElement('div');container.id=HEADER_ID;
@@ -336,6 +349,61 @@
             if(parent)parent.insertBefore(container,headerRight);
             refreshShowcases();
         } catch(e) { console.error('[AchievementBadges] injectHeader error:', e); }
+    }
+
+    // [Jellyfin 12] The modern layout (the default since 12.0) keeps
+    // .mainDrawer and .skinHeader in the DOM only so legacy scripts do not
+    // throw; both are hidden, so injectSidebar() and injectHeader() above
+    // land where nobody looks. The one navigation a regular user still has
+    // is the avatar menu: an MUI Menu with id "app-user-menu" that stays
+    // mounted while closed (keepMounted). Clone the Profile item so the
+    // entry inherits the MUI classes and behaves like its neighbours, and
+    // put it right below Profile. The legacy layouts (desktop-legacy,
+    // mobile-legacy, tv) still use the old drawer, so the injection above
+    // stays for them.
+    function injectUserMenu(){
+        try {
+            var menu=document.getElementById('app-user-menu');
+            if(!menu){ return; }
+            var list=menu.querySelector('ul[role="menu"]')||menu.querySelector('ul.MuiList-root');
+            if(!list){ return; }
+            var existing=document.getElementById(USER_MENU_ID);
+            if(existing && existing.parentNode===list){ return; }
+            if(existing && existing.parentNode){ existing.parentNode.removeChild(existing); }
+            var profile=list.querySelector('a[href*="/userprofile"]');
+            var template=profile||list.querySelector('a.MuiMenuItem-root')||list.querySelector('li.MuiMenuItem-root');
+            if(!template){ return; }
+            var item=template.cloneNode(true);
+            item.id=USER_MENU_ID;
+            item.setAttribute('href','#/achievements');
+            item.removeAttribute('aria-current');
+            item.classList.remove('Mui-selected','Mui-focusVisible');
+            var icon=item.querySelector('.MuiListItemIcon-root');
+            if(icon){
+                icon.innerHTML='<span class="material-icons" aria-hidden="true" style="font-family:Material Icons;font-size:24px;line-height:1;">emoji_events</span>';
+            }
+            var text=item.querySelector('.MuiListItemText-root .MuiTypography-root')||item.querySelector('.MuiListItemText-root');
+            if(text){ text.textContent=tr('sidebar.achievements','Achievements'); }
+            item.addEventListener('click',function(e){
+                e.preventDefault(); e.stopPropagation();
+                closeUserMenu();
+                window.location.hash='/achievements';
+            });
+            if(profile && profile.nextSibling){ list.insertBefore(item, profile.nextSibling); }
+            else { list.appendChild(item); }
+            console.log('[AchievementBadges] injectUserMenu: entry added below Profile');
+        } catch(e) { console.error('[AchievementBadges] injectUserMenu error:', e); }
+    }
+
+    // The clone carries none of React's handlers, so the menu would stay
+    // open after navigating. The popover closes when its backdrop is
+    // clicked; Escape is the fallback.
+    function closeUserMenu(){
+        try {
+            var backdrop=document.querySelector('#app-user-menu .MuiBackdrop-root');
+            if(backdrop){ backdrop.click(); return; }
+            document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+        } catch(e) {}
     }
 
     function refreshShowcases(){
@@ -376,6 +444,7 @@
             if (!enabled) removeShowcaseDom();
             injectSidebar();
             injectHeader();
+            injectUserMenu();
         });
         // Idempotent — mounts the friends button/drawer exactly once, but
         // is cheap to call repeatedly so the retry loop covers the case
