@@ -1358,8 +1358,56 @@ font-size:0.88em;
     var bgSavedBody = null, bgSavedHtml = null;
     var PAGE_BG = 'oklch(11% 0.008 260)';
 
+    /* [Jellyfin 12] The dashboard shell is MUI: a docked drawer (240px, a
+       fixed layer above this page) on medium screens and up, and a fixed
+       app bar on every size. Taking the whole viewport put the leftmost
+       240px of this page under the drawer and its first 48px under the
+       bar. Measure both, hand them to the stylesheet as variables, and
+       keep them fresh on resize; the stylesheet keeps MUI's defaults as
+       fallbacks. Nothing here runs on the legacy dashboard, which has no
+       .dashboard-appBar. */
+    var _abDashResize = null;
+    var _abDashObserver = null;
+    function measureDashboardShell() {
+        var root = document.documentElement;
+        var docked = document.querySelector('.MuiDrawer-docked');
+        var bar = document.querySelector('.dashboard-appBar');
+        var left = docked ? Math.round(docked.getBoundingClientRect().width) : 0;
+        var top = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+        root.style.setProperty('--ab-dash-left', left + 'px');
+        root.style.setProperty('--ab-dash-top', top + 'px');
+    }
+    function fitDashboardShell() {
+        if (!document.querySelector('.dashboard-appBar')) return;
+        document.body.classList.add('ab-dash-shell');
+        measureDashboardShell();
+        if (!_abDashResize) {
+            /* The drawer switches between docked and overlay at MUI's md
+               breakpoint through a React re-render, which lands after the
+               resize event. A ResizeObserver on body fires once layout has
+               settled, so the measurement sees the drawer that is really
+               there; the resize listener stays for browsers without it. */
+            _abDashResize = function () { setTimeout(measureDashboardShell, 150); };
+            window.addEventListener('resize', _abDashResize);
+            try {
+                if (window.ResizeObserver) {
+                    _abDashObserver = new ResizeObserver(function () { measureDashboardShell(); });
+                    _abDashObserver.observe(document.body);
+                }
+            } catch (_) {}
+        }
+    }
+    function releaseDashboardShell() {
+        document.body.classList.remove('ab-dash-shell');
+        document.documentElement.style.removeProperty('--ab-dash-left');
+        document.documentElement.style.removeProperty('--ab-dash-top');
+        if (_abDashResize) { window.removeEventListener('resize', _abDashResize); _abDashResize = null; }
+        if (_abDashObserver) { try { _abDashObserver.disconnect(); } catch (_) {} _abDashObserver = null; }
+    }
+
     function applyBodyClassAndWatch() {
         if (document.body) document.body.classList.add('ab-revamp-fullwidth');
+        try { fitDashboardShell(); } catch (_) {}
 
         if (bgSavedBody === null && document.body) {
             bgSavedBody = document.body.style.background || '';
@@ -1413,6 +1461,7 @@ font-size:0.88em;
 
     function removeBodyClassAndUnwatch() {
         if (document.body) document.body.classList.remove('ab-revamp-fullwidth');
+        try { releaseDashboardShell(); } catch (_) {}
         if (bgSavedBody !== null && document.body) {
             document.body.style.background = bgSavedBody; bgSavedBody = null;
         }

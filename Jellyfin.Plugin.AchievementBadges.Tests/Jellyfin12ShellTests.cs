@@ -110,6 +110,58 @@ public class Jellyfin12ShellTests
     }
 
     [Fact]
+    public void TheRevampAdminPageStaysInsideTheDashboardContentArea()
+    {
+        // The Revamp admin page takes the viewport with position: fixed.
+        // The MUI dashboard keeps a docked 240px drawer and a fixed app bar
+        // on layers above it, so the left 240px and the top 48px of the page
+        // were hidden. The bootstrap measures both and the stylesheet
+        // insets the page by them.
+        var html = ReadEmbedded("Pages.index.html");
+        var css = ReadEmbedded("styles-revamp.css");
+
+        Assert.Contains("function fitDashboardShell()", html, StringComparison.Ordinal);
+        Assert.Contains("querySelector('.MuiDrawer-docked')", html, StringComparison.Ordinal);
+        Assert.Contains("querySelector('.dashboard-appBar')", html, StringComparison.Ordinal);
+        Assert.Contains("setProperty('--ab-dash-left'", html, StringComparison.Ordinal);
+        Assert.Contains("setProperty('--ab-dash-top'", html, StringComparison.Ordinal);
+        // Re-measured after layout settles, not only on the resize event.
+        Assert.Contains("new ResizeObserver(function () { measureDashboardShell(); })", html, StringComparison.Ordinal);
+
+        var apply = html.IndexOf("function applyBodyClassAndWatch()", StringComparison.Ordinal);
+        var fit = html.IndexOf("fitDashboardShell();", apply, StringComparison.Ordinal);
+        var remove = html.IndexOf("function removeBodyClassAndUnwatch()", StringComparison.Ordinal);
+        var release = html.IndexOf("releaseDashboardShell();", remove, StringComparison.Ordinal);
+        Assert.True(apply >= 0 && fit > apply);
+        Assert.True(remove >= 0 && release > remove);
+
+        Assert.Contains("body.ab-revamp-fullwidth.ab-dash-shell #AchievementBadgesPage", css, StringComparison.Ordinal);
+        Assert.Contains("inset: var(--ab-dash-top, 48px) 0 0 var(--ab-dash-left, 240px) !important;", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheTabIsNamedAfterThePageWhileTheRouteIsOurs()
+    {
+        // The SPA renders its "Page not found" route under the overlay and
+        // names the tab after it.
+        var js = ReadEmbedded("standalone.js");
+
+        Assert.Contains("function applyDocumentTitle()", js, StringComparison.Ordinal);
+        Assert.Contains("if (document.title !== wanted) document.title = wanted;", js, StringComparison.Ordinal);
+
+        var mount = js.IndexOf("function mountRoute(host)", StringComparison.Ordinal);
+        var applied = js.IndexOf("applyDocumentTitle();", mount, StringComparison.Ordinal);
+        var watched = js.IndexOf("watchDocumentTitle();", mount, StringComparison.Ordinal);
+        Assert.True(mount >= 0 && applied > mount && watched > mount);
+
+        // The 1.5s watchdog re-applies it, so a late title write by the SPA
+        // never sticks.
+        var watchdog = js.IndexOf("setInterval(function () {", js.IndexOf("function unmountRoute()", StringComparison.Ordinal), StringComparison.Ordinal);
+        var reapplied = js.IndexOf("applyDocumentTitle();", watchdog, StringComparison.Ordinal);
+        Assert.True(watchdog >= 0 && reapplied > watchdog);
+    }
+
+    [Fact]
     public void TheLegacyDrawerInjectionStays()
     {
         // Jellyfin 12 still offers desktop-legacy, mobile-legacy and tv

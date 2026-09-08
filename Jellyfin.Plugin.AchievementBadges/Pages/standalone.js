@@ -4787,6 +4787,8 @@
         if (root.parentNode !== target) target.appendChild(root);
         activeHost = host || null;
         root.style.display = 'block';
+        applyDocumentTitle();
+        watchDocumentTitle();
 
         /* v1.8.47: apply the persisted Classic/Revamp preference + wire toggle. */
         applyStylePref(getStylePref());
@@ -4914,6 +4916,30 @@
         setTimeout(function () { if (toast.parentNode) dismiss(); }, 30000);
     }
 
+    // [Jellyfin 12] The SPA renders its "Page not found" route underneath
+    // this overlay and names the tab after it. While the route is ours the
+    // tab is named after the page the user actually sees; the SPA sets
+    // its own title again on the next route. The observer catches the
+    // SPA writing its title after the mount.
+    var TITLE_KEY = 'achievements.title';
+    var _titleObserver = null;
+    function applyDocumentTitle() {
+        try {
+            if (!isAchievementsRoute()) return;
+            var wanted = tr(TITLE_KEY, 'Achievements');
+            if (document.title !== wanted) document.title = wanted;
+        } catch (e) {}
+    }
+    function watchDocumentTitle() {
+        try {
+            if (_titleObserver) return;
+            var titleEl = document.querySelector('title');
+            if (!titleEl) return;
+            _titleObserver = new MutationObserver(function () { applyDocumentTitle(); });
+            _titleObserver.observe(titleEl, { childList: true, characterData: true, subtree: true });
+        } catch (e) {}
+    }
+
     function unmountRoute() {
         var r = document.getElementById(ROOT_ID);
         if (r) r.style.display = 'none';
@@ -4973,6 +4999,7 @@
             var r = document.getElementById(ROOT_ID);
             if (isAchievementsRoute()) {
                 if (!r || r.style.display === 'none' || r.parentNode !== document.body) onRouteChange();
+                applyDocumentTitle();
             } else {
                 var host = findIntegrationHost();
                 var shouldMount = host && integrationEnabled(host, publicConfigGlobal || {}, navigationPreferencesGlobal || {});
