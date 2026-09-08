@@ -183,6 +183,41 @@ public class Jellyfin12ShellTests
     }
 
     [Fact]
+    public void TheAdminProfileCardKeepsItsSubtitleAndUsesTheWholeHeroForTheShowcase()
+    {
+        // Two things seen on a live server. The subtitle went back to
+        // "Loading..." after the summary had written "Completion: 42.7%",
+        // because the translation applier rewrites every [data-i18n]
+        // element and the summary can land first. And the showcase sat in
+        // the hero's left column, next to three wide buttons, so a 1400px
+        // card showed two columns of badges.
+        var html = ReadEmbedded("Pages.index.html");
+
+        var completion = html.IndexOf("tr('achievements.completion', 'Completion')", StringComparison.Ordinal);
+        var detached = html.IndexOf("profileSubtitle.removeAttribute('data-i18n');", completion, StringComparison.Ordinal);
+        Assert.True(completion >= 0 && detached > completion && detached - completion < 600);
+        Assert.Equal(3, CountOf(html, "profileSubtitle.removeAttribute('data-i18n');"));
+
+        var actions = html.IndexOf("<div class=\"abHeroActions\">", StringComparison.Ordinal);
+        var showcase = html.IndexOf("<div id=\"abShowcaseWrap\"", StringComparison.Ordinal);
+        Assert.True(actions >= 0 && showcase > actions);
+        Assert.Contains(".abShowcaseWrap{\nmargin-top:1.1em;\nflex-basis:100%;", html, StringComparison.Ordinal);
+        Assert.Contains("grid-template-columns:repeat(auto-fill,minmax(300px,1fr));", html, StringComparison.Ordinal);
+    }
+
+    private static int CountOf(string text, string needle)
+    {
+        var count = 0;
+        var index = text.IndexOf(needle, StringComparison.Ordinal);
+        while (index >= 0)
+        {
+            count++;
+            index = text.IndexOf(needle, index + needle.Length, StringComparison.Ordinal);
+        }
+        return count;
+    }
+
+    [Fact]
     public void TheLegacyDrawerInjectionStays()
     {
         // Jellyfin 12 still offers desktop-legacy, mobile-legacy and tv

@@ -61,6 +61,8 @@ align-items:center;
 
 .abShowcaseWrap{
 margin-top:1.1em;
+flex-basis:100%;
+width:100%;
 }
 
 .abSectionEyebrow{
@@ -74,7 +76,7 @@ margin-bottom:0.7em;
 
 .abShowcase{
 display:grid;
-grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
 gap:0.8em;
 }
 
@@ -1578,10 +1580,6 @@ font-size:0.88em;
                             </div>
                         </div>
 
-                        <div id="abShowcaseWrap" class="abShowcaseWrap">
-                            <div class="abSectionEyebrow" data-i18n="achievements.showcase">Showcase</div>
-                            <div id="abShowcaseRow" class="abShowcase"></div>
-                        </div>
                     </div>
 
                     <div class="abHeroActions">
@@ -1596,6 +1594,11 @@ font-size:0.88em;
                         <button is="emby-button" type="button" class="raised" id="abSimulateBtn" data-i18n="admin.btn_simulate_playback">
                             Simulate playback
                         </button>
+                    </div>
+
+                    <div id="abShowcaseWrap" class="abShowcaseWrap">
+                        <div class="abSectionEyebrow" data-i18n="achievements.showcase">Showcase</div>
+                        <div id="abShowcaseRow" class="abShowcase"></div>
                     </div>
                 </div>
 
@@ -2824,6 +2827,10 @@ font-size:0.88em;
         return fetchJson('Plugins/AchievementBadges/users/' + userId + '/summary').then(function (summary) {
             setSummary(summary);
             profileSubtitle.textContent = tr('achievements.completion', 'Completion') + ': ' + ((summary && summary.Percentage != null) ? summary.Percentage : 0) + '%';
+            // The translation applier rewrites every [data-i18n] element when
+            // the dictionary lands or the language changes; if that happens
+            // after this write, the subtitle goes back to "Loading...".
+            profileSubtitle.removeAttribute('data-i18n');
         });
     }
 
@@ -3027,6 +3034,7 @@ font-size:0.88em;
         // the failure.
         var summaryPromise = loadSummary(userId).catch(function (err) {
             profileSubtitle.textContent = tr('admin.msg.profile_failed', 'Could not load profile.');
+            profileSubtitle.removeAttribute('data-i18n');
             setSummary({ Unlocked: 0, Total: 0, Percentage: 0, EquippedCount: 0 });
             console.warn('[AchievementBadges] summary load failed', err);
         });
@@ -3064,6 +3072,7 @@ font-size:0.88em;
             leaderboardBox.innerHTML = tr('admin.msg.lb_failed', 'Failed to load leaderboard.');
             serverStatsBox.innerHTML = tr('admin.msg.server_stats_failed', 'Failed to load server stats.');
             profileSubtitle.textContent = tr('admin.msg.profile_failed', 'Could not load profile.');
+            profileSubtitle.removeAttribute('data-i18n');
             setSummary({ Unlocked: 0, Total: 0, Percentage: 0, EquippedCount: 0 });
             setStatus('');
             setError(tr('admin.msg.badges_load_failed', 'Failed to load badges.') + ' ' + (error && error.message ? error.message : String(error)));
