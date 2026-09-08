@@ -523,7 +523,11 @@
                             }
                         }
                         var token = ApiClient._serverInfo && ApiClient._serverInfo.AccessToken;
-                        if (token) headers['X-Emby-Token'] = token;
+                        if (!token && typeof ApiClient.accessToken === 'function') {
+                            try { token = ApiClient.accessToken(); } catch (e) {}
+                        }
+                        // [Jellyfin 12] legacy token headers are refused; send the current form too.
+                        if (token) { headers['Authorization'] = 'MediaBrowser Token="' + token + '"'; headers['X-Emby-Token'] = token; }
                     }
                     return headers;
                 },

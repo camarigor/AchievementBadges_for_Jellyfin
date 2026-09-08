@@ -2424,7 +2424,8 @@ font-size:0.88em;
                 try {
                     if (apiClient && typeof apiClient.accessToken === 'function') {
                         var t = apiClient.accessToken();
-                        if (t) h['X-Emby-Token'] = t;
+                        // [Jellyfin 12] legacy token headers are refused; send the current form too.
+                        if (t) { h['Authorization'] = 'MediaBrowser Token="' + t + '"'; h['X-Emby-Token'] = t; }
                     }
                 } catch (e) {}
                 return h;
@@ -2559,7 +2560,14 @@ font-size:0.88em;
                 }
             }
             var token = apiClient._serverInfo && apiClient._serverInfo.AccessToken;
+            if (!token && typeof apiClient.accessToken === 'function') {
+                try { token = apiClient.accessToken(); } catch (e) {}
+            }
             if (token) {
+                // [Jellyfin 12] Legacy authorization is off after the 12.0
+                // migration, so X-Emby-Token alone answers 401. Send the
+                // current form; 10.11 accepts either.
+                headers['Authorization'] = 'MediaBrowser Token="' + token + '"';
                 headers['X-Emby-Token'] = token;
             }
         }

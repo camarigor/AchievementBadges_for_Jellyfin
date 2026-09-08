@@ -75,6 +75,40 @@ public class Jellyfin12ShellTests
         Assert.True(modern > legacy);
     }
 
+    [Theory]
+    [InlineData("sidebar.js")]
+    [InlineData("standalone.js")]
+    [InlineData("enhance.js")]
+    [InlineData("Pages.index.html")]
+    [InlineData("configPage.html")]
+    public void EveryAuthenticatedCallSendsTheCurrentAuthorizationHeader(string asset)
+    {
+        // Jellyfin 12.0 runs a migration (DisableLegacyAuthorization) that
+        // refuses X-Emby-Token, X-MediaBrowser-Token and api_key in the
+        // query. Every plugin call that carried only the legacy header
+        // answered 401 on 12: badges, preferences, friends, the admin
+        // catalog. The current form is the only one 12 accepts, and 10.11
+        // accepts both, so both are sent.
+        var text = ReadEmbedded(asset);
+
+        Assert.Contains("MediaBrowser Token=\"'", text, StringComparison.Ordinal);
+        // The legacy header never travels alone any more: each place that
+        // sets it also sets Authorization within the same block.
+        var sites = 0;
+        foreach (var needle in new[] { "['X-Emby-Token'] =", "['X-Emby-Token']=" })
+        {
+            var index = text.IndexOf(needle, StringComparison.Ordinal);
+            while (index >= 0)
+            {
+                sites++;
+                var windowStart = Math.Max(0, index - 400);
+                Assert.Contains("Authorization", text.Substring(windowStart, index - windowStart), StringComparison.Ordinal);
+                index = text.IndexOf(needle, index + needle.Length, StringComparison.Ordinal);
+            }
+        }
+        Assert.True(sites > 0, "the asset sets no token header at all");
+    }
+
     [Fact]
     public void TheLegacyDrawerInjectionStays()
     {

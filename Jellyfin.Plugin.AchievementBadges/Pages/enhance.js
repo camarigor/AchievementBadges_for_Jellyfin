@@ -108,12 +108,24 @@
         return (api && typeof api.getUrl === 'function') ? api.getUrl(c) : '/' + c;
     }
 
+    // [Jellyfin 12] Legacy authorization (X-Emby-Token, X-MediaBrowser-Token,
+    // api_key in the query) is switched off by a 12.0 migration, so every
+    // authenticated call answered 401. Send the current form; the legacy
+    // header stays because 10.11 accepts either.
+    function setTokenHeaders(h, t) {
+        h['Authorization'] = 'MediaBrowser Token="' + t + '"';
+        h['X-Emby-Token'] = t;
+        return h;
+    }
+
     function authHeaders() {
         var h = { 'Content-Type': 'application/json' };
         var api = getApi(); if (!api) return h;
         try {
-            if (typeof api.accessToken === 'function') { var t = api.accessToken(); if (t) h['X-Emby-Token'] = t; }
-            else if (api._serverInfo && api._serverInfo.AccessToken) h['X-Emby-Token'] = api._serverInfo.AccessToken;
+            var t = null;
+            if (typeof api.accessToken === 'function') t = api.accessToken();
+            if (!t && api._serverInfo && api._serverInfo.AccessToken) t = api._serverInfo.AccessToken;
+            if (t) setTokenHeaders(h, t);
         } catch (e) { }
         return h;
     }
