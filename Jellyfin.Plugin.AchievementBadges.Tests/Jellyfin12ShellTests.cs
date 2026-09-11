@@ -22,7 +22,11 @@ public class Jellyfin12ShellTests
         var name = assembly.GetManifestResourceNames().Single(n => n.EndsWith(suffix, StringComparison.Ordinal));
         using var stream = assembly.GetManifestResourceStream(name)!;
         using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
+        // The assertions below pin literal newlines inside CSS blocks. A
+        // Windows checkout embeds the asset with CRLF, so normalise here
+        // rather than letting the line-ending policy of the clone decide
+        // whether the suite passes.
+        return reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal);
     }
 
     [Fact]
