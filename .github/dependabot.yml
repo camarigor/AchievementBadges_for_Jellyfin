@@ -33,6 +33,13 @@ updates:
       - "tests"
     commit-message:
       prefix: "deps(tests)"
+    ignore:
+      # The Jellyfin package line is chosen per target framework in the
+      # csproj (10.11.x on net9.0, 12.x on net10.0) and doubles as the
+      # plugin's minimum server version. Dependabot has bumped it through
+      # this entry too (#101, #104); keep every entry aligned.
+      - dependency-name: "Jellyfin.Controller"
+      - dependency-name: "Jellyfin.Model"
 
   - package-ecosystem: "nuget"
     directory: "/Jellyfin.Plugin.AchievementBadges.Fuzz"
@@ -47,6 +54,13 @@ updates:
       - "fuzz"
     commit-message:
       prefix: "deps(fuzz)"
+    ignore:
+      # The Jellyfin package line is chosen per target framework in the
+      # csproj (10.11.x on net9.0, 12.x on net10.0) and doubles as the
+      # plugin's minimum server version. Dependabot has bumped it through
+      # this entry too (#101, #104); keep every entry aligned.
+      - dependency-name: "Jellyfin.Controller"
+      - dependency-name: "Jellyfin.Model"
 
   - package-ecosystem: "docker"
     directory: "/.clusterfuzzlite"

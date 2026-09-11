@@ -31,13 +31,14 @@
 
 A full progression, gamification and achievement system for Jellyfin that rewards users based on real viewing activity. Think Xbox Gamerscore meets Letterboxd meets Steam profile customization, built natively into your media server.
 
-> **Status:** Active development — **v2.3.1** is live, a patch over **v2.3.0 "Friends & Foundations"**: the 2.3.0 music feature now counts correctly and rebuilds from a scan, both leaderboards show your own rank, and deleted accounts are cleaned up. See [What's new in v2.3.1](#-whats-new-in-v231). 2.3.0 brought friend profile cards, three shareable card skins (Console / Metro / Aurora), Tracearr history crediting, and the profile data-loss + gzip injection fixes every published build needs. Built on v2.2 "Your Screen, Your Rules", the v2.1 "Open Library" expansion, and v2.0 "Choose Your Loadout".
+> **Status:** Active development — **v2.4.0** is live: **Jellyfin 12 support** (a dedicated 12.0 build in every release, and the web side reworked for the new layout and authorization), **targeted badges** that point at one series, season, collection, playlist, album or item, **JellyEmu game achievements**, and your shop bling on the shareable card. See [What's new in v2.4.0](#-whats-new-in-v240). Before that, v2.3.1 fixed the music feature and cleaned up the leaderboards, and 2.3.0 brought friend profile cards, three shareable card skins (Console / Metro / Aurora), Tracearr history crediting, and the profile data-loss + gzip injection fixes every published build needs. Built on v2.2 "Your Screen, Your Rules", the v2.1 "Open Library" expansion, and v2.0 "Choose Your Loadout".
 
 ---
 
 ## 📑 Table of contents
 
 - [Overview](#-overview)
+- [What's new in v2.4.0 — Jellyfin 12, targeted badges, games](#-whats-new-in-v240--jellyfin-12-targeted-badges-games) — a 12.0 build in every release, avatar-menu entry, badges that point at one thing, JellyEmu games, shop bling on the card
 - [What's new in v2.3.0 — Friends & Foundations](#-whats-new-in-v230--friends--foundations) — friend profile cards, shareable card skins, library + artist completion, Tracearr, reliability + published-build fixes
 - [Core features](#-core-features)
   - [Badge system](#-badge-system) — 200+ achievements, 35+ categories, 6 rarities
@@ -77,6 +78,18 @@ A full progression, gamification and achievement system for Jellyfin that reward
 Over **200 built-in achievements** across 35+ categories, a 10-tier rank ladder from Rookie to Immortal, a full score economy with combos, prestige, daily/weekly quests, a **Score Shop with 70+ cosmetics**, power-up consumables, a Friends drawer with messaging, plus admin power features like custom badges, seasonal challenges, webhook notifications, and a full audit log.
 
 Designed to integrate cleanly with modern Jellyfin setups and themes like NetFin, ElegantFin, or StarTrack.
+
+---
+
+## 🚀 What's new in v2.4.0 — Jellyfin 12, targeted badges, games
+
+**Drop-in upgrade from v2.3.x — no schema breakage or manual migration.** Full notes in [docs/release-notes/v2.4.0.md](docs/release-notes/v2.4.0.md).
+
+- **Jellyfin 12 (#109, #117, #122).** Every release now ships two packages: `x.y.z.0` for Jellyfin 10.11 (.NET 9) and `x.y.z.1` for Jellyfin 12 (.NET 10). The catalog picks the right one for your server. On 12 the **Achievements entry lives in the avatar menu** (right below Profile) and the **equipped badge strip sits in the toolbar** beside the avatar, since the modern layout hides the old drawer and header. Every call now sends the `Authorization` header 12 requires (legacy `X-Emby-Token` alone answers 401 there). The Revamp admin page fits inside the MUI dashboard, links use `#/` routes, and the tab is named Achievements. Thanks to [@camarigor](https://github.com/camarigor) for both PRs and to [@Lyxon1337](https://github.com/Lyxon1337) for the report.
+- **Targeted badges (#107).** Two new metrics, `ContainerCompletionPercent` and `ItemPlayCount`, point a badge at one series, season, collection, playlist, album or item, picked from a library search in the admin page. Retroactive on creation, and they move on Jellyfin's played flag, so marking a season watched by hand counts.
+- **Game achievements (#115).** Games played through JellyEmu earn achievements: nine built-in badges (sessions, distinct games, hours, platforms) and three custom-badge metrics.
+- **Shop bling on the shareable card (#42).** Your equipped custom title and badge frame now show on all three card skins and on the friends-drawer card, under the same privacy toggles as the equipped badges.
+- **Fixed.** Toast placement never applied under Revamp (#116). The user-id poll fired ~25 `Users/Me` requests on the login page. The Revamp stylesheet was cached under a stale token, so a stylesheet change could take a day to reach browsers. The admin hero reported v1.9.2 on every release. Reset now refuses a malformed or unknown user id instead of answering 200, admin-page errors name the request that failed, and a watch-history scan that finds nothing tells you to check the account's library access (#97).
 
 ---
 
@@ -614,14 +627,13 @@ https://raw.githubusercontent.com/ZL154/AchievementBadges_for_Jellyfin/main/mani
 5. Restart Jellyfin
 6. Go to **Dashboard → Plugins → Achievement Badges → Settings**
 7. Click **Scan watch history** (or **Scan all users**) to backfill from your existing play data
-8. Explore `#!/achievements` to see your profile — and the new **Loadout** tab
+8. Open **Achievements** (avatar menu on Jellyfin 12, sidebar on 10.11) or go to `#/achievements` — and try the **Loadout** tab
 
 ---
 
 ## 🔧 Requirements
 
-- **Jellyfin 10.11.x**, on .NET 9. This is what every release ships for today.
-- **Jellyfin 12.0**: the plugin builds and passes its full test suite against the 12.0 release candidates on .NET 10 in CI, but no 12.0 package is published until Jellyfin tags 12.0.0. Release candidates move, and shipping against one would mean rebuilding for each. The 12.0 zip will appear in the same release as the 10.11 one from that point on.
+- **Jellyfin 10.11.x** (.NET 9) **or Jellyfin 12.0.x** (.NET 10). Every release ships one package per line and the catalog picks the right one for your server: version `x.y.z.0` is the 10.11 build, `x.y.z.1` is the 12 build. Installing by hand? Take the zip whose 4th version segment matches your server. Upgrading the server from 10.11 to 12 will offer the `.1` build as a plugin update afterwards.
 - **File Transformation plugin** (strongly recommended) — ensures sidebar, dashboard UI, profile showcase and achievements page inject reliably across Jellyfin Web updates. Without it most UI injection still works via the plugin's own middleware, but File Transformation gives the most robust integration.
 
 ### Optional but helpful
