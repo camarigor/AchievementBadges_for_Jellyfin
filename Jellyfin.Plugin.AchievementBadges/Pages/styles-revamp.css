@@ -5013,3 +5013,14 @@ body[data-ab-style="revamp"] #abFriendsBtn:focus-visible {
 #achievementBadgesStandaloneRoot[class*="border-"] .ab-hero::before {
     z-index: 1;
 }
+
+/* [Jellyfin 12] Inside the MUI dashboard the page still owns the viewport,
+   minus the docked drawer on the left and the app bar on top, both of
+   which sit on fixed layers above it. The bootstrap script measures the
+   two and sets the variables; the fallbacks are MUI's defaults. Specificity
+   0,3,1 beats the full viewport rule above (0,2,1). */
+body.ab-revamp-fullwidth.ab-dash-shell #AchievementBadgesPage {
+    inset: var(--ab-dash-top, 48px) 0 0 var(--ab-dash-left, 240px) !important;
+    width: auto !important;
+    height: auto !important;
+}

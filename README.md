@@ -12,7 +12,7 @@
 ```
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Jellyfin-10.11%2B-0b0b0b?style=for-the-badge&labelColor=000000&color=2b2b2b" />
+  <img src="https://img.shields.io/badge/Jellyfin-10.11%20and%2012-0b0b0b?style=for-the-badge&labelColor=000000&color=2b2b2b" />
   <img src="https://img.shields.io/badge/Type-Plugin-E50914?style=for-the-badge&labelColor=000000&color=E50914" />
   <img src="https://img.shields.io/badge/System-Achievements-0b0b0b?style=for-the-badge&labelColor=000000&color=2b2b2b" />
   <a href="https://github.com/ZL154/AchievementBadges_for_Jellyfin/releases/latest"><img src="https://img.shields.io/github/v/release/ZL154/AchievementBadges_for_Jellyfin?style=for-the-badge&labelColor=000000&color=2b2b2b&label=Release" /></a>
@@ -298,6 +298,7 @@ Xbox-Guide-style chat built into the Friends drawer. No external service, no Web
 ### 🏠 UI integration
 
 - **Sidebar entry** auto-injected into the Jellyfin nav menu (works on web, iOS, and Android after restart)
+- **Jellyfin 12**: the modern layout has no navigation drawer, so the entry sits in the avatar menu, right below Profile; the legacy layouts (desktop-legacy, mobile-legacy, TV) keep the drawer entry. The same plugin build runs on 10.11 and 12.
 - **Equipped badge showcase** in header + profile (configurable slot count, 1-10)
 - **Xbox-style unlock toasts** with per-rarity colors (6 tiers), Xbox logo → trophy swap, shimmer sweep, and confetti on rare+ unlocks
 - **Achievement sound** — Xbox 360 chime for common/uncommon, rare Xbox One chime for rare/epic/legendary/mythic
@@ -306,7 +307,7 @@ Xbox-Guide-style chat built into the Friends drawer. No external service, no Web
 - **Per-device toast delivery** — choose all signed-in devices (default) or only the Jellyfin device that earned the achievement
 - **Toasts during playback** — unlocks fire within ~1s of earning via playback event hooks + DOM fallback
 - **Admin toast preview** — test buttons for each rarity tier
-- **Standalone achievements page** at `#!/achievements` with the new **Loadout tab (v2.0)** for managing power-ups, shop, and cosmetics
+- **Standalone achievements page** at `#/achievements` with the new **Loadout tab (v2.0)** for managing power-ups, shop, and cosmetics
 - **Optional page hosts** — reuse the same page inside Custom Tabs or register it with Plugin Pages; both are admin opt-in and the stock page always remains available
 - **Modular per-user navigation** — independently show or hide the Custom Tabs entry, Plugin Pages entry, and header trophy without affecting achievement tracking or each other
 - **Shareable profile card (three skins, v2.3.0)** — server-rendered HTML at `/Plugins/AchievementBadges/users/{id}/profile-card`, in **Console** (default), **Metro**, or **Aurora Spine**, each drawn with the owner's rank colour as the accent. Users pick their skin in preferences; `?style=` overrides per link, and a request with no style falls back to the owner's choice

@@ -77,10 +77,10 @@
         wrapper.innerHTML =
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:1em;flex-wrap:wrap;margin-bottom:0.8em;">' +
                 '<div style="font-size:1.05em;font-weight:700;">Achievements Showcase</div>' +
-                '<a href="/web/index.html#!/configurationpage?name=achievementbadges" style="color:#7dd3fc;text-decoration:none;font-weight:600;">Open Achievements</a>' +
+                '<a href="/web/index.html#/configurationpage?name=achievementbadges" style="color:#7dd3fc;text-decoration:none;font-weight:600;">Open Achievements</a>' +
             '</div>' +
             '<iframe ' +
-                'src="/web/index.html#!/configurationpage?name=achievementbadgesshowcase&userId=' + encodeURIComponent(userId) + '" ' +
+                'src="/web/index.html#/configurationpage?name=achievementbadgesshowcase&userId=' + encodeURIComponent(userId) + '" ' +
                 'style="width:100%;min-height:90px;border:0;background:transparent;" ' +
                 'loading="lazy">' +
             '</iframe>';

@@ -131,17 +131,25 @@
         return '/' + clean;
     }
 
+    // [Jellyfin 12] Legacy authorization (X-Emby-Token, X-MediaBrowser-Token,
+    // api_key in the query) is switched off by a 12.0 migration, so every
+    // authenticated call answered 401. Send the current form; the legacy
+    // header stays because 10.11 accepts either.
+    function setTokenHeaders(h, t) {
+        h['Authorization'] = 'MediaBrowser Token="' + t + '"';
+        h['X-Emby-Token'] = t;
+        return h;
+    }
+
     function getAuthHeadersImmediate() {
         var api = getApiClient();
         var h = { 'Content-Type': 'application/json' };
         if (!api) return h;
         try {
-            if (typeof api.accessToken === 'function') {
-                var t = api.accessToken();
-                if (t) h['X-Emby-Token'] = t;
-            } else if (api._serverInfo && api._serverInfo.AccessToken) {
-                h['X-Emby-Token'] = api._serverInfo.AccessToken;
-            }
+            var t = null;
+            if (typeof api.accessToken === 'function') t = api.accessToken();
+            if (!t && api._serverInfo && api._serverInfo.AccessToken) t = api._serverInfo.AccessToken;
+            if (t) setTokenHeaders(h, t);
         } catch (e) {}
         return h;
     }
@@ -1169,7 +1177,7 @@
                        toggle. Persists via the same `ab-style-pref` localStorage
                        key so the user's choice is shared across both surfaces. */
                     '<button type="button" id="abSaStyleToggleBtn" class="abSaStyleToggleBtn" aria-pressed="false" title="Toggle Revamp / Classic UI" data-i18n="ui.toggle.classic">UI: Classic</button>' +
-                    '<a class="ab-back" href="/web/index.html#!/home">\u2190 <span data-i18n="achievements.back_home">Back Home</span></a>' +
+                    '<a class="ab-back" href="/web/index.html#/home">\u2190 <span data-i18n="achievements.back_home">Back Home</span></a>' +
                 '</div>' +
                 '<div class="ab-hero">' +
                     /* v1.8.52: hero arc donut on the right side. Hidden in Classic
@@ -4779,6 +4787,8 @@
         if (root.parentNode !== target) target.appendChild(root);
         activeHost = host || null;
         root.style.display = 'block';
+        applyDocumentTitle();
+        watchDocumentTitle();
 
         /* v1.8.47: apply the persisted Classic/Revamp preference + wire toggle. */
         applyStylePref(getStylePref());
@@ -4906,6 +4916,30 @@
         setTimeout(function () { if (toast.parentNode) dismiss(); }, 30000);
     }
 
+    // [Jellyfin 12] The SPA renders its "Page not found" route underneath
+    // this overlay and names the tab after it. While the route is ours the
+    // tab is named after the page the user actually sees; the SPA sets
+    // its own title again on the next route. The observer catches the
+    // SPA writing its title after the mount.
+    var TITLE_KEY = 'achievements.title';
+    var _titleObserver = null;
+    function applyDocumentTitle() {
+        try {
+            if (!isAchievementsRoute()) return;
+            var wanted = tr(TITLE_KEY, 'Achievements');
+            if (document.title !== wanted) document.title = wanted;
+        } catch (e) {}
+    }
+    function watchDocumentTitle() {
+        try {
+            if (_titleObserver) return;
+            var titleEl = document.querySelector('title');
+            if (!titleEl) return;
+            _titleObserver = new MutationObserver(function () { applyDocumentTitle(); });
+            _titleObserver.observe(titleEl, { childList: true, characterData: true, subtree: true });
+        } catch (e) {}
+    }
+
     function unmountRoute() {
         var r = document.getElementById(ROOT_ID);
         if (r) r.style.display = 'none';
@@ -4965,6 +4999,7 @@
             var r = document.getElementById(ROOT_ID);
             if (isAchievementsRoute()) {
                 if (!r || r.style.display === 'none' || r.parentNode !== document.body) onRouteChange();
+                applyDocumentTitle();
             } else {
                 var host = findIntegrationHost();
                 var shouldMount = host && integrationEnabled(host, publicConfigGlobal || {}, navigationPreferencesGlobal || {});

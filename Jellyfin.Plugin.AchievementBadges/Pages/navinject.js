@@ -1,6 +1,6 @@
 (function () {
     var ENTRY_ID = "achievement-badges-nav-entry";
-    var TARGET_URL = "/web/index.html#!/configurationpage?name=achievementbadges";
+    var TARGET_URL = "/web/index.html#/configurationpage?name=achievementbadges";
 
     function createNavEntry() {
         if (document.getElementById(ENTRY_ID)) return;

@@ -61,6 +61,8 @@ align-items:center;
 
 .abShowcaseWrap{
 margin-top:1.1em;
+flex-basis:100%;
+width:100%;
 }
 
 .abSectionEyebrow{
@@ -74,7 +76,7 @@ margin-bottom:0.7em;
 
 .abShowcase{
 display:grid;
-grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
 gap:0.8em;
 }
 
@@ -1358,8 +1360,56 @@ font-size:0.88em;
     var bgSavedBody = null, bgSavedHtml = null;
     var PAGE_BG = 'oklch(11% 0.008 260)';
 
+    /* [Jellyfin 12] The dashboard shell is MUI: a docked drawer (240px, a
+       fixed layer above this page) on medium screens and up, and a fixed
+       app bar on every size. Taking the whole viewport put the leftmost
+       240px of this page under the drawer and its first 48px under the
+       bar. Measure both, hand them to the stylesheet as variables, and
+       keep them fresh on resize; the stylesheet keeps MUI's defaults as
+       fallbacks. Nothing here runs on the legacy dashboard, which has no
+       .dashboard-appBar. */
+    var _abDashResize = null;
+    var _abDashObserver = null;
+    function measureDashboardShell() {
+        var root = document.documentElement;
+        var docked = document.querySelector('.MuiDrawer-docked');
+        var bar = document.querySelector('.dashboard-appBar');
+        var left = docked ? Math.round(docked.getBoundingClientRect().width) : 0;
+        var top = bar ? Math.round(bar.getBoundingClientRect().height) : 0;
+        root.style.setProperty('--ab-dash-left', left + 'px');
+        root.style.setProperty('--ab-dash-top', top + 'px');
+    }
+    function fitDashboardShell() {
+        if (!document.querySelector('.dashboard-appBar')) return;
+        document.body.classList.add('ab-dash-shell');
+        measureDashboardShell();
+        if (!_abDashResize) {
+            /* The drawer switches between docked and overlay at MUI's md
+               breakpoint through a React re-render, which lands after the
+               resize event. A ResizeObserver on body fires once layout has
+               settled, so the measurement sees the drawer that is really
+               there; the resize listener stays for browsers without it. */
+            _abDashResize = function () { setTimeout(measureDashboardShell, 150); };
+            window.addEventListener('resize', _abDashResize);
+            try {
+                if (window.ResizeObserver) {
+                    _abDashObserver = new ResizeObserver(function () { measureDashboardShell(); });
+                    _abDashObserver.observe(document.body);
+                }
+            } catch (_) {}
+        }
+    }
+    function releaseDashboardShell() {
+        document.body.classList.remove('ab-dash-shell');
+        document.documentElement.style.removeProperty('--ab-dash-left');
+        document.documentElement.style.removeProperty('--ab-dash-top');
+        if (_abDashResize) { window.removeEventListener('resize', _abDashResize); _abDashResize = null; }
+        if (_abDashObserver) { try { _abDashObserver.disconnect(); } catch (_) {} _abDashObserver = null; }
+    }
+
     function applyBodyClassAndWatch() {
         if (document.body) document.body.classList.add('ab-revamp-fullwidth');
+        try { fitDashboardShell(); } catch (_) {}
 
         if (bgSavedBody === null && document.body) {
             bgSavedBody = document.body.style.background || '';
@@ -1413,6 +1463,7 @@ font-size:0.88em;
 
     function removeBodyClassAndUnwatch() {
         if (document.body) document.body.classList.remove('ab-revamp-fullwidth');
+        try { releaseDashboardShell(); } catch (_) {}
         if (bgSavedBody !== null && document.body) {
             document.body.style.background = bgSavedBody; bgSavedBody = null;
         }
@@ -1529,10 +1580,6 @@ font-size:0.88em;
                             </div>
                         </div>
 
-                        <div id="abShowcaseWrap" class="abShowcaseWrap">
-                            <div class="abSectionEyebrow" data-i18n="achievements.showcase">Showcase</div>
-                            <div id="abShowcaseRow" class="abShowcase"></div>
-                        </div>
                     </div>
 
                     <div class="abHeroActions">
@@ -1547,6 +1594,11 @@ font-size:0.88em;
                         <button is="emby-button" type="button" class="raised" id="abSimulateBtn" data-i18n="admin.btn_simulate_playback">
                             Simulate playback
                         </button>
+                    </div>
+
+                    <div id="abShowcaseWrap" class="abShowcaseWrap">
+                        <div class="abSectionEyebrow" data-i18n="achievements.showcase">Showcase</div>
+                        <div id="abShowcaseRow" class="abShowcase"></div>
                     </div>
                 </div>
 
@@ -2424,7 +2476,8 @@ font-size:0.88em;
                 try {
                     if (apiClient && typeof apiClient.accessToken === 'function') {
                         var t = apiClient.accessToken();
-                        if (t) h['X-Emby-Token'] = t;
+                        // [Jellyfin 12] legacy token headers are refused; send the current form too.
+                        if (t) { h['Authorization'] = 'MediaBrowser Token="' + t + '"'; h['X-Emby-Token'] = t; }
                     }
                 } catch (e) {}
                 return h;
@@ -2559,7 +2612,14 @@ font-size:0.88em;
                 }
             }
             var token = apiClient._serverInfo && apiClient._serverInfo.AccessToken;
+            if (!token && typeof apiClient.accessToken === 'function') {
+                try { token = apiClient.accessToken(); } catch (e) {}
+            }
             if (token) {
+                // [Jellyfin 12] Legacy authorization is off after the 12.0
+                // migration, so X-Emby-Token alone answers 401. Send the
+                // current form; 10.11 accepts either.
+                headers['Authorization'] = 'MediaBrowser Token="' + token + '"';
                 headers['X-Emby-Token'] = token;
             }
         }
@@ -2767,6 +2827,10 @@ font-size:0.88em;
         return fetchJson('Plugins/AchievementBadges/users/' + userId + '/summary').then(function (summary) {
             setSummary(summary);
             profileSubtitle.textContent = tr('achievements.completion', 'Completion') + ': ' + ((summary && summary.Percentage != null) ? summary.Percentage : 0) + '%';
+            // The translation applier rewrites every [data-i18n] element when
+            // the dictionary lands or the language changes; if that happens
+            // after this write, the subtitle goes back to "Loading...".
+            profileSubtitle.removeAttribute('data-i18n');
         });
     }
 
@@ -2970,6 +3034,7 @@ font-size:0.88em;
         // the failure.
         var summaryPromise = loadSummary(userId).catch(function (err) {
             profileSubtitle.textContent = tr('admin.msg.profile_failed', 'Could not load profile.');
+            profileSubtitle.removeAttribute('data-i18n');
             setSummary({ Unlocked: 0, Total: 0, Percentage: 0, EquippedCount: 0 });
             console.warn('[AchievementBadges] summary load failed', err);
         });
@@ -3007,6 +3072,7 @@ font-size:0.88em;
             leaderboardBox.innerHTML = tr('admin.msg.lb_failed', 'Failed to load leaderboard.');
             serverStatsBox.innerHTML = tr('admin.msg.server_stats_failed', 'Failed to load server stats.');
             profileSubtitle.textContent = tr('admin.msg.profile_failed', 'Could not load profile.');
+            profileSubtitle.removeAttribute('data-i18n');
             setSummary({ Unlocked: 0, Total: 0, Percentage: 0, EquippedCount: 0 });
             setStatus('');
             setError(tr('admin.msg.badges_load_failed', 'Failed to load badges.') + ' ' + (error && error.message ? error.message : String(error)));
