@@ -2669,10 +2669,22 @@ public class AchievementBadgeService : IDisposable
                 && string.Equals(c.Id, profile.EquippedBadgeFrameId, StringComparison.Ordinal))?.Id;
         }
 
+        // [issue #42 follow-up] The theme is the cosmetic TsunamicFlame named
+        // first ("Pastel"), and the one #119 left out. The default theme is
+        // what everyone has, so it reads as no theme, same as the frame.
+        string? theme = null;
+        if (!string.IsNullOrWhiteSpace(profile.EquippedThemeId)
+            && !string.Equals(profile.EquippedThemeId, "theme-default", StringComparison.Ordinal))
+        {
+            theme = catalog.FirstOrDefault(c => c.Kind == CosmeticKind.ProfileTheme
+                && string.Equals(c.Id, profile.EquippedThemeId, StringComparison.Ordinal))?.Id;
+        }
+
         return new PublicCosmetics
         {
             CustomTitle = string.IsNullOrWhiteSpace(title) ? null : title,
             BadgeFrameId = frame,
+            ProfileThemeId = theme,
         };
     }
 
@@ -2795,7 +2807,8 @@ public class AchievementBadgeService : IDisposable
                 BestWatchStreak = profile.Counters.BestWatchStreak,
                 Equipped = BuildEquippedPreview(profile),
                 CustomTitle = cosmetics.CustomTitle,
-                BadgeFrameId = cosmetics.BadgeFrameId
+                BadgeFrameId = cosmetics.BadgeFrameId,
+                ProfileThemeId = cosmetics.ProfileThemeId
             };
         }
     }

@@ -108,8 +108,11 @@
   .ab-back-btn:hover, .ab-back-btn:active{ background:rgba(30,33,42,.85); transform:scale(.96); }
   .ab-back-btn svg{ width:22px; height:22px; fill:currentColor; }
 </style>
+<style>
+{{themeCss}}
+</style>
 </head>
-<body>
+<body class="{{themeClass}}">
   <a class="ab-back-btn" href="/web/index.html#/achievements" aria-label="Back to Jellyfin"
      onclick="try{if(document.referrer&&window.history.length>1){window.history.back();return false;}}catch(e){}return true;">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>

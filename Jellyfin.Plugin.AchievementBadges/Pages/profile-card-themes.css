@@ -1,0 +1,76 @@
+/* Shop profile themes on the shareable card (issue #42 follow-up).
+
+   Each skin's own stylesheet defines its palette as variables on :root
+   (Console and Aurora: --accent from the rank tier plus neutral surfaces;
+   Metro: a fixed 360 green). A theme the owner equipped and paid for is
+   applied here as a body class, and only redefines those variables plus
+   the page backdrop, so every skin keeps its own layout and typography
+   and simply takes the owner's colours. The gradients are the same ones
+   the achievements page paints for the theme, so the card matches what
+   the owner sees on their own page.
+
+   This file is inlined into each template by the controller in place of
+   the {{themeCss}} token, so no extra request and no cache token to keep
+   fresh. Metro ignores --accent and --card by design (fixed green tiles)
+   and takes the backdrop and surfaces only. */
+
+/* Solid base under every gradient: the gradients' translucent stops
+   otherwise show the browser's white page, not the theme's dark ground. */
+body[class*="theme-"]{ --tile-2: var(--tile); background-color:var(--bg); }
+
+body.theme-sunset{
+  --accent:#fb923c; --bg:#181210; --tile:#221813; --tile-2:#1b1310; --card:#1c1411;
+  background-image:radial-gradient(120% 90% at 50% 0%, rgba(249,115,22,.32), var(--bg) 70%);
+}
+body.theme-cyberpunk{
+  --accent:#c084fc; --bg:#060814; --tile:#0f1024; --tile-2:#0b0c1c; --card:#0c0e20;
+  background-image:
+    linear-gradient(180deg, rgba(168,85,247,.18), var(--bg) 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 4px);
+}
+body.theme-pastel{
+  --accent:#c4b5fd; --bg:#16161c; --tile:#1e1d27; --tile-2:#191822; --card:#1b1a24;
+  --ink:#f5f3ff; --dim:rgba(245,243,255,.6); --faint:rgba(245,243,255,.4);
+  background-image:linear-gradient(180deg, rgba(196,181,253,.22), rgba(167,243,208,.10) 50%, var(--bg) 100%);
+}
+body.theme-monochrome{
+  --accent:#e5e7eb; --bg:#000; --tile:#0f0f0f; --tile-2:#0a0a0a; --card:#0c0c0c;
+  --line:rgba(255,255,255,.12);
+  background-image:none;
+}
+body.theme-noir{
+  --accent:#d6d3d1; --bg:#0c0a09; --tile:#171412; --tile-2:#12100e; --card:#14110f;
+  background-image:radial-gradient(120% 90% at 50% 0%, rgba(120,113,108,.25), var(--bg) 70%);
+}
+body.theme-aurora{
+  --accent:#34d399; --bg:#080812; --tile:#101322; --tile-2:#0c0e1b; --card:#0e101e;
+  background-image:linear-gradient(180deg, rgba(16,185,129,.18), rgba(59,130,246,.15) 35%, rgba(139,92,246,.12) 60%, var(--bg) 100%);
+}
+body.theme-crimson{
+  --accent:#f87171; --bg:#0f0808; --tile:#1c0f0f; --tile-2:#160b0b; --card:#180d0d;
+  background-image:radial-gradient(120% 90% at 50% 0%, rgba(220,38,38,.32), var(--bg) 70%);
+}
+body.theme-vaporwave{
+  --accent:#f472b6; --bg:#0f081e; --tile:#1a1030; --tile-2:#140c27; --card:#160e2b;
+  background-image:linear-gradient(180deg, rgba(236,72,153,.22), rgba(168,85,247,.18) 30%, rgba(6,182,212,.14) 60%, var(--bg) 100%);
+}
+body.theme-galaxy{
+  --accent:#c084fc; --bg:#0f0828; --tile:#1a1038; --tile-2:#140b30; --card:#160d33;
+  background-image:radial-gradient(120% 90% at 50% 0%, rgba(88,28,135,.45), var(--bg) 60%, #000 100%);
+}
+body.theme-forest{
+  --accent:#4ade80; --bg:#061e10; --tile:#0d2a18; --tile-2:#0a2414; --card:#0b2716;
+  background-image:radial-gradient(120% 90% at 50% 0%, rgba(21,128,61,.32), var(--bg) 65%);
+}
+body.theme-ocean{
+  --accent:#38bdf8; --bg:#02152a; --tile:#082238; --tile-2:#061c30; --card:#071f34;
+  background-image:linear-gradient(180deg, rgba(12,74,110,.45), var(--bg) 70%);
+}
+body.theme-rosegold{
+  --accent:#fda4af; --bg:#18080f; --tile:#24111a; --tile-2:#1e0d15; --card:#200f17;
+  background-image:linear-gradient(180deg, rgba(251,113,133,.22), rgba(245,158,11,.10) 35%, var(--bg) 100%);
+}
+body.theme-midnight{
+  --accent:#a5b4fc; --bg:#020617; --tile:#0b1029; --tile-2:#070b20; --card:#090d25;
+  background-image:radial-gradient(120% 90% at 50% 0%, rgba(30,27,75,.5), var(--bg) 65%);
+}

@@ -25,5 +25,11 @@ public sealed class PublicCosmetics
     /// that exists in the catalog.</summary>
     public string? BadgeFrameId { get; init; }
 
+    /// <summary>Catalog id of the equipped profile theme (for example
+    /// "theme-pastel"), or null for the default theme, an unknown id, or a
+    /// hidden showcase. Same guarantee as the frame: only a catalog id, so it
+    /// is safe as a CSS class on the shareable card.</summary>
+    public string? ProfileThemeId { get; init; }
+
     public static PublicCosmetics None { get; } = new();
 }

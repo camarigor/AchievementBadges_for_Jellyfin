@@ -1554,6 +1554,14 @@ public class AchievementBadgesController : ControllerBase
             var cosmetics = _badgeService.GetPublicCosmetics(userId);
             var customTitle = System.Net.WebUtility.HtmlEncode(cosmetics.CustomTitle ?? string.Empty);
             var frameClass = System.Net.WebUtility.HtmlEncode(cosmetics.BadgeFrameId ?? string.Empty);
+            // [issue #42 follow-up] The owner's profile theme paints the card.
+            // The class is a catalog id (never the user's string) and the
+            // stylesheet is inlined from an embedded resource, so the card
+            // stays a single self-contained response under its CSP.
+            var themeClass = System.Net.WebUtility.HtmlEncode(cosmetics.ProfileThemeId ?? string.Empty);
+            var themeCss = themeClass.Length == 0
+                ? string.Empty
+                : (GetCachedEmbeddedText("Jellyfin.Plugin.AchievementBadges.Pages.profile-card-themes.css") ?? string.Empty);
 
             var recap = _recapService.GetRecap(userId, "month");
             var recapType = recap.GetType();
@@ -1584,7 +1592,9 @@ public class AchievementBadgesController : ControllerBase
                 .Replace("{{recapUnlocks}}", recapUnlocks.ToString())
                 .Replace("{{equippedHtml}}", equippedHtml)
                 .Replace("{{customTitle}}", customTitle)
-                .Replace("{{frameClass}}", frameClass);
+                .Replace("{{frameClass}}", frameClass)
+                .Replace("{{themeClass}}", themeClass)
+                .Replace("{{themeCss}}", themeCss);
         }
         catch
         {

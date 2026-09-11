@@ -108,6 +108,64 @@ public class PublicCosmeticsTests : IDisposable
     }
 
     [Fact]
+    public void EquippedTheme_ReachesTheCardAndTheSummary_AndDefaultReadsAsNone()
+    {
+        // TsunamicFlame's first example in #42 was the Pastel theme, which
+        // #119 left out. The default theme is what everyone has, so it is
+        // reported as no theme, the same way the default frame is.
+        Seed(_badges, null, null);
+        var profile = _badges.GetOrCreateProfileDirect(Target);
+        profile.EquippedThemeId = "theme-pastel";
+        _badges.SaveProfileDirect(profile);
+
+        var card = _badges.GetPublicCosmetics(Target);
+        Assert.Equal("theme-pastel", card.ProfileThemeId);
+        var summary = _badges.GetPublicProfileSummary(Target)!;
+        Assert.Equal("theme-pastel", summary.GetType().GetProperty("ProfileThemeId")!.GetValue(summary));
+
+        profile.EquippedThemeId = "theme-default";
+        _badges.SaveProfileDirect(profile);
+        Assert.Null(_badges.GetPublicCosmetics(Target).ProfileThemeId);
+
+        profile.EquippedThemeId = "frame-gilded";
+        _badges.SaveProfileDirect(profile);
+        Assert.Null(_badges.GetPublicCosmetics(Target).ProfileThemeId);
+
+        profile.EquippedThemeId = "theme-pastel";
+        profile.Preferences.ShowEquippedShowcase = false;
+        _badges.SaveProfileDirect(profile);
+        Assert.Null(_badges.GetPublicCosmetics(Target).ProfileThemeId);
+    }
+
+    [Theory]
+    [InlineData("profile-card.html")]
+    [InlineData("profile-card-metro.html")]
+    [InlineData("profile-card-blades.html")]
+    public void EverySkin_TakesTheThemeClassAndStylesheet(string template)
+    {
+        var html = ReadEmbedded(template);
+        Assert.Contains("<body class=\"{{themeClass}}\">", html, StringComparison.Ordinal);
+        Assert.Contains("{{themeCss}}", html, StringComparison.Ordinal);
+
+        // Every theme the shop sells has a rule; the default has none.
+        var css = ReadEmbedded("profile-card-themes.css");
+        foreach (var id in new[] { "sunset", "cyberpunk", "pastel", "monochrome", "noir", "aurora", "crimson", "vaporwave", "galaxy", "forest", "ocean", "rosegold", "midnight" })
+        {
+            Assert.Contains("body.theme-" + id + "{", css, StringComparison.Ordinal);
+        }
+        Assert.DoesNotContain("theme-default", css, StringComparison.Ordinal);
+    }
+
+    private static string ReadEmbedded(string suffix)
+    {
+        var assembly = typeof(Plugin).Assembly;
+        var name = System.Linq.Enumerable.Single(assembly.GetManifestResourceNames(), n => n.EndsWith(suffix, StringComparison.Ordinal));
+        using var stream = assembly.GetManifestResourceStream(name)!;
+        using var reader = new System.IO.StreamReader(stream);
+        return reader.ReadToEnd();
+    }
+
+    [Fact]
     public void TheDefaultFrameAndAnUnknownTitle_ReadAsNothing()
     {
         // frame-default is what everyone has, so it is not bling. An id the

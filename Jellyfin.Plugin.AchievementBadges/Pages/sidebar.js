@@ -565,6 +565,27 @@
         }
     }
 
+    // [issue #42 follow-up] Accent of each shop profile theme, the same
+    // values profile-card-themes.css uses on the shareable card.
+    function themeAccent(id){
+        switch (id) {
+            case 'theme-sunset':     return '#fb923c';
+            case 'theme-cyberpunk':  return '#c084fc';
+            case 'theme-pastel':     return '#c4b5fd';
+            case 'theme-monochrome': return '#e5e7eb';
+            case 'theme-noir':       return '#d6d3d1';
+            case 'theme-aurora':     return '#34d399';
+            case 'theme-crimson':    return '#f87171';
+            case 'theme-vaporwave':  return '#f472b6';
+            case 'theme-galaxy':     return '#c084fc';
+            case 'theme-forest':     return '#4ade80';
+            case 'theme-ocean':      return '#38bdf8';
+            case 'theme-rosegold':   return '#fda4af';
+            case 'theme-midnight':   return '#a5b4fc';
+            default: return '';
+        }
+    }
+
     function renderEquippedDots(eq, size, frameId){
         if (!eq || !eq.length) return '';
         var px = size || 16;
@@ -1537,6 +1558,14 @@
         card.className = 'ab-pc2' + (pin ? ' pin' : '');
         card.setAttribute('role', 'dialog');
         card.style.setProperty('--acc', t.color);
+        // [issue #42 follow-up] The owner's shop theme colours the card's
+        // accent, matching the shareable card. The id is a catalog id from
+        // the server, so the class is safe; unknown ids keep the tier colour.
+        if (data.ProfileThemeId && /^theme-[a-z]+$/.test(data.ProfileThemeId)) {
+            card.classList.add(data.ProfileThemeId);
+            var themeAcc = themeAccent(data.ProfileThemeId);
+            if (themeAcc) card.style.setProperty('--acc', themeAcc);
+        }
         card.innerHTML =
             '<div class="top">' + avatar +
             '<div class="id"><div class="nm">' + escapeHtml(nm) + '</div>' +
