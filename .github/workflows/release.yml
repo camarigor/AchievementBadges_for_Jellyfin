@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .NET 9 and 10
-        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           # [issue #109] The plugin multi-targets net9.0 (Jellyfin 10.11)
           # and net10.0 (Jellyfin 12). Building needs only the .NET 10 SDK,
@@ -137,7 +137,7 @@ jobs:
       - name: Attest build provenance
         id: attest
         if: ${{ github.event.inputs.publish_release == 'true' }}
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
             ${{ steps.pkg.outputs.zippath }}
