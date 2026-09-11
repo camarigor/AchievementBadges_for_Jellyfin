@@ -38,8 +38,19 @@
                 });
             }
             if (!document.getElementById('abSaRevampCss')) {
-                // v1.9.0: version-only cache bust (see index.html).
-                var __abCssBust = 'v=1.9.2';
+                // The stylesheet is served immutable for a day under this
+                // token; a literal one stops busting the moment it goes
+                // stale. Take the token the running DLL stamped on this very
+                // script's <script src> (document.currentScript while the
+                // script is still executing synchronously).
+                var __abCssBust = (function () {
+                    try {
+                        var tag = document.currentScript || document.querySelector('script[src*="client-script/sidebar"]');
+                        var m = tag && /[?&](v=[^&#"']+)/.exec(tag.getAttribute('src') || '');
+                        if (m) return m[1];
+                    } catch (e) {}
+                    return 'v=' + Date.now();
+                })();
                 var __abApi = window.ApiClient || window.apiClient;
                 var __abUrl = (__abApi && typeof __abApi.getUrl === 'function')
                     ? __abApi.getUrl('Plugins/AchievementBadges/client-script/styles-revamp')
@@ -425,8 +436,18 @@
         } catch(e) {}
     }
 
+    // [issue #42 follow-up] The equipped frame belongs on every place the
+    // equipped badges appear, the header strip and the drawer pills included.
+    function fetchOwnFrame(){
+        var uid=getUserId();if(!uid)return Promise.resolve('');
+        return fetch(buildUrl('Plugins/AchievementBadges/users/'+uid+'/cosmetics'),{headers:authHeaders(),credentials:'include'})
+            .then(function(r){return r.ok?r.json():null;})
+            .then(function(c){var id=c&&(c.EquippedBadgeFrameId||c.equippedBadgeFrameId);return (id&&id!=='frame-default')?id:'';})
+            .catch(function(){return '';});
+    }
     function refreshShowcases(){
-        fetchEquipped().then(function(badges){
+        Promise.all([fetchEquipped(), fetchOwnFrame()]).then(function(res){
+            var badges=res[0]; var ring=frameColour(res[1]);
             var sc=document.getElementById(SHOWCASE_ID);
             if(sc){
                 sc.innerHTML='';
@@ -434,7 +455,7 @@
                     badges.forEach(function(b){
                         var color=rc(b.Rarity);
                         var pill=document.createElement('div');pill.title=b.Title+' ('+b.Rarity+')';
-                        pill.style.cssText='display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 5px;border-radius:999px;background:'+color+'1a;border:1px solid '+color+';font-size:11px;cursor:default;line-height:1;';
+                        pill.style.cssText='display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 5px;border-radius:999px;background:'+color+'1a;border:1px solid '+(ring||color)+';font-size:11px;cursor:default;line-height:1;'+(ring?'box-shadow:0 0 0 1px '+ring+', 0 0 8px '+ring+'66;':'');
                         pill.innerHTML='<span class="material-icons" style="font-family:Material Icons;font-size:15px;line-height:1;color:#fff;opacity:0.95;">'+icName(b.Icon)+'</span><span style="color:'+color+';font-weight:700;line-height:1;">'+escapeHtml(b.Title)+'</span>';
                         sc.appendChild(pill);
                     });
@@ -447,7 +468,7 @@
                     badges.forEach(function(b){
                         var color=rc(b.Rarity);
                         var dot=document.createElement('div');dot.title=b.Title+' ('+b.Rarity+')';
-                        dot.style.cssText='width:30px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:'+color+'26;border:1.5px solid '+color+';box-shadow:0 0 12px '+color+'55;';
+                        dot.style.cssText='width:30px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:'+color+'26;border:1.5px solid '+(ring||color)+';box-shadow:0 0 12px '+(ring||color)+'55'+(ring?', 0 0 0 1px '+ring:'')+';';
                         dot.innerHTML='<span class="material-icons" style="font-family:Material Icons;font-size:16px;line-height:1;color:#fff;">'+icName(b.Icon)+'</span>';
                         hdr.appendChild(dot);
                     });

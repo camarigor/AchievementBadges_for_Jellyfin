@@ -273,6 +273,15 @@ public class Jellyfin12ShellTests
         Assert.DoesNotContain("var CSS_BUST = 'v=", html, StringComparison.Ordinal);
         Assert.Contains("script[src*=\"client-script/sidebar\"]", html, StringComparison.Ordinal);
 
+        // The standalone page and sidebar.js each linked the same stylesheet
+        // under their own literal token. Three copies of one bug.
+        var standalone = ReadEmbedded("standalone.js");
+        Assert.DoesNotContain("REVAMP_CSS_BUST = 'v=", standalone, StringComparison.Ordinal);
+        Assert.Contains("script[src*=\"client-script/standalone\"]", standalone, StringComparison.Ordinal);
+        var sidebar = ReadEmbedded("sidebar.js");
+        Assert.DoesNotContain("__abCssBust = 'v=", sidebar, StringComparison.Ordinal);
+        Assert.Contains("document.currentScript", sidebar, StringComparison.Ordinal);
+
         // The hero used to announce v1.9.2 on Jellyfin ABI 10.11.0.0 forever.
         Assert.DoesNotContain("version: '1.9.2'", html, StringComparison.Ordinal);
         Assert.DoesNotContain("targetAbi: '10.11.0.0'", html, StringComparison.Ordinal);
