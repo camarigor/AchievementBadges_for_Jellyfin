@@ -31,5 +31,20 @@ public sealed class PublicCosmetics
     /// is safe as a CSS class on the shareable card.</summary>
     public string? ProfileThemeId { get; init; }
 
+    /// <summary>The equipped shop avatar's glyph (an emoji such as 🏆), or
+    /// null when none is equipped. Taken from the catalog entry, never from
+    /// the user, so it is safe to render.</summary>
+    public string? AvatarGlyph { get; init; }
+
+    /// <summary>Catalog id of the equipped animated background (for example
+    /// "bg-nebula"), or null for none / unknown / hidden. The id names an
+    /// embedded video asset or a CSS-only effect; the card decides which.</summary>
+    public string? BackgroundId { get; init; }
+
+    /// <summary>Catalog id of the equipped profile border (for example
+    /// "border-gold-shimmer"), or null for none / unknown / hidden. Safe as
+    /// a CSS class for the same reason as the frame.</summary>
+    public string? ProfileBorderId { get; init; }
+
     public static PublicCosmetics None { get; } = new();
 }

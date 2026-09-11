@@ -137,6 +137,79 @@ public class PublicCosmeticsTests : IDisposable
         Assert.Null(_badges.GetPublicCosmetics(Target).ProfileThemeId);
     }
 
+    [Fact]
+    public void EquippedAvatarBorderAndBackground_ReachTheCardAndTheSummary()
+    {
+        // The last three kinds the shop sells. The avatar travels as its
+        // glyph (the catalog's emoji), never as the user's string; the two
+        // "none" entries read as nothing, like the default frame and theme.
+        Seed(_badges, null, null);
+        var profile = _badges.GetOrCreateProfileDirect(Target);
+        profile.EquippedAvatarId = "avatar-dragon";
+        profile.EquippedBackgroundId = "bg-nebula";
+        profile.EquippedProfileBorderId = "border-gold-shimmer";
+        _badges.SaveProfileDirect(profile);
+
+        var card = _badges.GetPublicCosmetics(Target);
+        Assert.Equal("🐉", card.AvatarGlyph);
+        Assert.Equal("bg-nebula", card.BackgroundId);
+        Assert.Equal("border-gold-shimmer", card.ProfileBorderId);
+
+        var summary = _badges.GetPublicProfileSummary(Target)!;
+        var t = summary.GetType();
+        Assert.Equal("🐉", t.GetProperty("AvatarGlyph")!.GetValue(summary));
+        Assert.Equal("bg-nebula", t.GetProperty("BackgroundId")!.GetValue(summary));
+        Assert.Equal("border-gold-shimmer", t.GetProperty("ProfileBorderId")!.GetValue(summary));
+
+        profile.EquippedAvatarId = "theme-pastel";
+        profile.EquippedBackgroundId = "bg-none";
+        profile.EquippedProfileBorderId = "border-none";
+        _badges.SaveProfileDirect(profile);
+        var none = _badges.GetPublicCosmetics(Target);
+        Assert.Null(none.AvatarGlyph);
+        Assert.Null(none.BackgroundId);
+        Assert.Null(none.ProfileBorderId);
+
+        profile.EquippedAvatarId = "avatar-dragon";
+        profile.EquippedBackgroundId = "bg-nebula";
+        profile.EquippedProfileBorderId = "border-gold-shimmer";
+        profile.Preferences.ShowEquippedShowcase = false;
+        _badges.SaveProfileDirect(profile);
+        var hidden = _badges.GetPublicCosmetics(Target);
+        Assert.Null(hidden.AvatarGlyph);
+        Assert.Null(hidden.BackgroundId);
+        Assert.Null(hidden.ProfileBorderId);
+    }
+
+    [Theory]
+    [InlineData("profile-card.html")]
+    [InlineData("profile-card-metro.html")]
+    [InlineData("profile-card-blades.html")]
+    public void EverySkin_TakesTheEffectsAndTheAvatarGlyph(string template)
+    {
+        var html = ReadEmbedded(template);
+        Assert.Contains("{{effectsCss}}", html, StringComparison.Ordinal);
+        Assert.Contains("{{bgLayerHtml}}", html, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"glyph\">{{avatarGlyph}}</span>", html, StringComparison.Ordinal);
+
+        var css = ReadEmbedded("profile-card-effects.css");
+        foreach (var id in new[] { "gold-shimmer", "plasma", "ember", "holo", "crystal" })
+        {
+            Assert.Contains("body.border-" + id + " .card", css, StringComparison.Ordinal);
+            Assert.Contains("body.border-" + id + " .wrap", css, StringComparison.Ordinal);
+        }
+        Assert.Contains("body.bg-starfield::before", css, StringComparison.Ordinal);
+        Assert.Contains(".bgv{", css, StringComparison.Ordinal);
+        Assert.DoesNotContain("border-none", css, StringComparison.Ordinal);
+
+        // The eight video backgrounds the catalog sells all ship as assets.
+        var names = typeof(Plugin).Assembly.GetManifestResourceNames();
+        foreach (var bg in new[] { "bg-blackhole", "bg-nebula", "bg-matrix", "bg-aurora", "bg-fireflies", "bg-galaxy", "bg-moonlit-village", "bg-rainy-station" })
+        {
+            Assert.Contains("Jellyfin.Plugin.AchievementBadges.Pages.assets." + bg + ".mp4", names);
+        }
+    }
+
     [Theory]
     [InlineData("profile-card.html")]
     [InlineData("profile-card-metro.html")]
@@ -144,7 +217,7 @@ public class PublicCosmeticsTests : IDisposable
     public void EverySkin_TakesTheThemeClassAndStylesheet(string template)
     {
         var html = ReadEmbedded(template);
-        Assert.Contains("<body class=\"{{themeClass}}\">", html, StringComparison.Ordinal);
+        Assert.Contains("<body class=\"{{bodyClass}}\">", html, StringComparison.Ordinal);
         Assert.Contains("{{themeCss}}", html, StringComparison.Ordinal);
 
         // Every theme the shop sells has a rule; the default has none.

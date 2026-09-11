@@ -91,7 +91,7 @@ public class PublicProfileSummaryTests : IDisposable
             "Score", "BestWatchStreak", "Equipped",
             // Issue #42: the equipped custom title and badge frame, published
             // on the leaderboard first and repeated here.
-            "CustomTitle", "BadgeFrameId", "ProfileThemeId"
+            "CustomTitle", "BadgeFrameId", "ProfileThemeId", "AvatarGlyph", "ProfileBorderId", "BackgroundId"
         };
         var actual = summary!.GetType().GetProperties().Select(p => p.Name).OrderBy(n => n).ToArray();
 

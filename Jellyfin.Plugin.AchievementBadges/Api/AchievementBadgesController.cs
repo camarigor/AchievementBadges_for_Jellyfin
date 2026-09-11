@@ -257,6 +257,11 @@ public class AchievementBadgesController : ControllerBase
         return _embeddedTextCache.GetOrAdd(resourceName, key => ResourceReader.ReadEmbeddedText(key));
     }
 
+    private static bool HasEmbeddedResource(string resourceName)
+    {
+        return Array.IndexOf(typeof(AchievementBadgesController).Assembly.GetManifestResourceNames(), resourceName) >= 0;
+    }
+
     private static byte[]? GetCachedEmbeddedBytes(string resourceName)
     {
         return _embeddedBytesCache.GetOrAdd(resourceName, key =>
@@ -1563,6 +1568,28 @@ public class AchievementBadgesController : ControllerBase
                 ? string.Empty
                 : (GetCachedEmbeddedText("Jellyfin.Plugin.AchievementBadges.Pages.profile-card-themes.css") ?? string.Empty);
 
+            // Border, animated background and avatar: the last three kinds
+            // the shop sells. All catalog ids; the classes and the asset name
+            // can only be values that exist in the catalog.
+            var borderClass = System.Net.WebUtility.HtmlEncode(cosmetics.ProfileBorderId ?? string.Empty);
+            var bgClass = System.Net.WebUtility.HtmlEncode(cosmetics.BackgroundId ?? string.Empty);
+            var avatarGlyph = System.Net.WebUtility.HtmlEncode(cosmetics.AvatarGlyph ?? string.Empty);
+            var bodyClass = string.Join(" ", new[] { themeClass, borderClass, bgClass }.Where(c => c.Length > 0));
+            var effectsCss = borderClass.Length == 0 && bgClass.Length == 0 && avatarGlyph.Length == 0
+                ? string.Empty
+                : (GetCachedEmbeddedText("Jellyfin.Plugin.AchievementBadges.Pages.profile-card-effects.css") ?? string.Empty);
+            // Eight of the nine backgrounds are video loops embedded under
+            // Pages/assets; Starfield is CSS only. A <video> with autoplay,
+            // muted and loop plays without script, which the card's CSP
+            // forbids. Same asset route the achievements page uses.
+            var bgLayerHtml = string.Empty;
+            if (bgClass.Length > 0 && HasEmbeddedResource("Jellyfin.Plugin.AchievementBadges.Pages.assets." + bgClass + ".mp4"))
+            {
+                bgLayerHtml =
+                    "<video class=\"bgv\" autoplay muted loop playsinline disableremoteplayback aria-hidden=\"true\" src=\"/Plugins/AchievementBadges/asset/" + bgClass + "\"></video>" +
+                    "<div class=\"bgo\" aria-hidden=\"true\"></div>";
+            }
+
             var recap = _recapService.GetRecap(userId, "month");
             var recapType = recap.GetType();
             int recapMovies = (int)(recapType.GetProperty("MoviesWatched")?.GetValue(recap) ?? 0);
@@ -1594,7 +1621,11 @@ public class AchievementBadgesController : ControllerBase
                 .Replace("{{customTitle}}", customTitle)
                 .Replace("{{frameClass}}", frameClass)
                 .Replace("{{themeClass}}", themeClass)
-                .Replace("{{themeCss}}", themeCss);
+                .Replace("{{themeCss}}", themeCss)
+                .Replace("{{bodyClass}}", bodyClass)
+                .Replace("{{effectsCss}}", effectsCss)
+                .Replace("{{bgLayerHtml}}", bgLayerHtml)
+                .Replace("{{avatarGlyph}}", avatarGlyph);
         }
         catch
         {

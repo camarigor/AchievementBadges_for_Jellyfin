@@ -2680,11 +2680,40 @@ public class AchievementBadgeService : IDisposable
                 && string.Equals(c.Id, profile.EquippedThemeId, StringComparison.Ordinal))?.Id;
         }
 
+        // The remaining three kinds the shop sells: avatar (its glyph),
+        // animated background and profile border. Same rule for each: only
+        // a catalog id ever leaves here, and the "none" entries read as none.
+        string? avatarGlyph = null;
+        if (!string.IsNullOrWhiteSpace(profile.EquippedAvatarId))
+        {
+            avatarGlyph = catalog.FirstOrDefault(c => c.Kind == CosmeticKind.Avatar
+                && string.Equals(c.Id, profile.EquippedAvatarId, StringComparison.Ordinal))?.PreviewColor;
+        }
+
+        string? background = null;
+        if (!string.IsNullOrWhiteSpace(profile.EquippedBackgroundId)
+            && !string.Equals(profile.EquippedBackgroundId, "bg-none", StringComparison.Ordinal))
+        {
+            background = catalog.FirstOrDefault(c => c.Kind == CosmeticKind.Background
+                && string.Equals(c.Id, profile.EquippedBackgroundId, StringComparison.Ordinal))?.Id;
+        }
+
+        string? border = null;
+        if (!string.IsNullOrWhiteSpace(profile.EquippedProfileBorderId)
+            && !string.Equals(profile.EquippedProfileBorderId, "border-none", StringComparison.Ordinal))
+        {
+            border = catalog.FirstOrDefault(c => c.Kind == CosmeticKind.ProfileBorder
+                && string.Equals(c.Id, profile.EquippedProfileBorderId, StringComparison.Ordinal))?.Id;
+        }
+
         return new PublicCosmetics
         {
             CustomTitle = string.IsNullOrWhiteSpace(title) ? null : title,
             BadgeFrameId = frame,
             ProfileThemeId = theme,
+            AvatarGlyph = string.IsNullOrWhiteSpace(avatarGlyph) ? null : avatarGlyph,
+            BackgroundId = background,
+            ProfileBorderId = border,
         };
     }
 
@@ -2808,7 +2837,10 @@ public class AchievementBadgeService : IDisposable
                 Equipped = BuildEquippedPreview(profile),
                 CustomTitle = cosmetics.CustomTitle,
                 BadgeFrameId = cosmetics.BadgeFrameId,
-                ProfileThemeId = cosmetics.ProfileThemeId
+                ProfileThemeId = cosmetics.ProfileThemeId,
+                AvatarGlyph = cosmetics.AvatarGlyph,
+                ProfileBorderId = cosmetics.ProfileBorderId,
+                BackgroundId = cosmetics.BackgroundId
             };
         }
     }

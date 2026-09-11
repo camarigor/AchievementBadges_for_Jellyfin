@@ -111,8 +111,12 @@
 <style>
 {{themeCss}}
 </style>
+<style>
+{{effectsCss}}
+</style>
 </head>
-<body class="{{themeClass}}">
+<body class="{{bodyClass}}">
+{{bgLayerHtml}}
   <a class="ab-back-btn" href="/web/index.html#/achievements" aria-label="Back to Jellyfin"
      onclick="try{if(document.referrer&&window.history.length>1){window.history.back();return false;}}catch(e){}return true;">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
@@ -122,7 +126,7 @@
     <div class="spine"><span>{{tierName}}</span></div>
     <div class="body">
       <div class="top">
-        <div class="av"><span class="ini">{{userInitial}}</span><span class="img"></span></div>
+        <div class="av"><span class="ini">{{userInitial}}</span><span class="img"></span><span class="glyph">{{avatarGlyph}}</span></div>
         <div class="id">
           <div class="nm">{{userName}}</div>
           <div class="ctitle">{{customTitle}}</div>

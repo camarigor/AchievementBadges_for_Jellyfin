@@ -1467,7 +1467,24 @@
             '.ab-pc2 .bdg .material-icons{font-size:16px;color:#fff;}',
             '.ab-pc2 .act{display:flex;gap:8px;margin-top:16px;}',
             '.ab-pc2 .btn{flex:1;padding:9px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:inherit;cursor:pointer;font-size:12px;font-weight:600;text-align:center;text-decoration:none;}',
-            '.ab-pc2 .btn.acc{border-color:transparent;background:color-mix(in srgb,var(--acc) 24%,transparent);color:#fff;}'
+            '.ab-pc2 .btn.acc{border-color:transparent;background:color-mix(in srgb,var(--acc) 24%,transparent);color:#fff;}',
+            // [issue #42 follow-up] The owner's shop avatar replaces the initial / photo.
+            '.ab-pc2 .ava .glyph{position:absolute;inset:6px;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:27px;line-height:1;}',
+            // [issue #42 follow-up] The owner's shop border, the same box-shadow effects the shareable card uses.
+            '#ab-profile-card.ab-pc2.border-gold-shimmer{animation:abPc2In .34s cubic-bezier(.16,1,.3,1) both,abPcBorderShimmer 4s linear infinite;}',
+            '@keyframes abPcBorderShimmer{0%,50%,100%{box-shadow:0 0 0 2px #facc15,0 0 16px rgba(250,204,21,.35),0 20px 54px -16px rgba(0,0,0,.72);}30%{box-shadow:0 0 0 2px #fde68a,0 0 22px rgba(253,230,138,.55),0 20px 54px -16px rgba(0,0,0,.72);}70%{box-shadow:0 0 0 2px #a16207,0 0 10px rgba(161,98,7,.35),0 20px 54px -16px rgba(0,0,0,.72);}}',
+            '#ab-profile-card.ab-pc2.border-plasma{animation:abPc2In .34s cubic-bezier(.16,1,.3,1) both,abPcBorderPlasma 5s linear infinite;}',
+            '@keyframes abPcBorderPlasma{0%,100%{box-shadow:0 0 0 2px #ec4899,0 0 22px rgba(236,72,153,.55);}25%{box-shadow:0 0 0 2px #a855f7,0 0 22px rgba(168,85,247,.55);}50%{box-shadow:0 0 0 2px #06b6d4,0 0 22px rgba(6,182,212,.55);}75%{box-shadow:0 0 0 2px #22d3ee,0 0 22px rgba(34,211,238,.55);}}',
+            '#ab-profile-card.ab-pc2.border-ember{animation:abPc2In .34s cubic-bezier(.16,1,.3,1) both,abPcBorderEmber 2.5s ease-in-out infinite;}',
+            '@keyframes abPcBorderEmber{0%,100%{box-shadow:0 0 0 1px #dc2626,0 0 14px rgba(220,38,38,.5);}50%{box-shadow:0 0 0 2px #fca5a5,0 0 28px rgba(220,38,38,.85);}}',
+            '#ab-profile-card.ab-pc2.border-holo{animation:abPc2In .34s cubic-bezier(.16,1,.3,1) both,abPcBorderHolo 6s ease-in-out infinite;}',
+            '@keyframes abPcBorderHolo{0%,100%{box-shadow:0 0 0 2px #ff006e,0 0 18px rgba(255,0,110,.45);}20%{box-shadow:0 0 0 2px #ffbe0b,0 0 18px rgba(255,190,11,.45);}40%{box-shadow:0 0 0 2px #06ffa5,0 0 26px rgba(6,255,165,.6);}60%{box-shadow:0 0 0 2px #00b4d8,0 0 18px rgba(0,180,216,.45);}80%{box-shadow:0 0 0 2px #8338ec,0 0 18px rgba(131,56,236,.45);}}',
+            '#ab-profile-card.ab-pc2.border-crystal{box-shadow:0 0 0 2px #bfdbfe,inset 0 0 18px rgba(191,219,254,.25),0 20px 54px -16px rgba(0,0,0,.72);}',
+            // The pinned variant has its own entrance animation; keep it and the ring together.
+            '#ab-profile-card.ab-pc2.pin.border-gold-shimmer{animation:abPc2OpenPinned .4s cubic-bezier(.16,1,.3,1) both,abPcBorderShimmer 4s linear infinite;}',
+            '#ab-profile-card.ab-pc2.pin.border-plasma{animation:abPc2OpenPinned .4s cubic-bezier(.16,1,.3,1) both,abPcBorderPlasma 5s linear infinite;}',
+            '#ab-profile-card.ab-pc2.pin.border-ember{animation:abPc2OpenPinned .4s cubic-bezier(.16,1,.3,1) both,abPcBorderEmber 2.5s ease-in-out infinite;}',
+            '#ab-profile-card.ab-pc2.pin.border-holo{animation:abPc2OpenPinned .4s cubic-bezier(.16,1,.3,1) both,abPcBorderHolo 6s ease-in-out infinite;}'
         ].join('');
         (document.head || document.documentElement).appendChild(s);
     }
@@ -1533,6 +1550,8 @@
             '<circle class="fil" cx="31" cy="31" r="28" style="--C:' + _abPcRingC + ';--off:' + off + ';"></circle></svg>' +
             '<div class="ini">' + escapeHtml(ini.toUpperCase()) + '</div>' +
             (avatarUrl ? '<div class="img" style="background-image:url(\'' + avatarUrl.replace(/'/g, '%27') + '\');"></div>' : '') +
+            // [issue #42 follow-up] Shop avatar on top of the photo, if one is equipped.
+            (data.AvatarGlyph ? '<div class="glyph">' + escapeHtml(data.AvatarGlyph) + '</div>' : '') +
             '<span class="pct">' + (Math.round(pct * 10) / 10) + '%</span></div>';
 
         var prog = t.next
@@ -1565,6 +1584,10 @@
             card.classList.add(data.ProfileThemeId);
             var themeAcc = themeAccent(data.ProfileThemeId);
             if (themeAcc) card.style.setProperty('--acc', themeAcc);
+        }
+        // [issue #42 follow-up] The owner's shop border rings the card.
+        if (data.ProfileBorderId && /^border-[a-z-]+$/.test(data.ProfileBorderId)) {
+            card.classList.add(data.ProfileBorderId);
         }
         card.innerHTML =
             '<div class="top">' + avatar +
