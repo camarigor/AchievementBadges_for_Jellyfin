@@ -39,7 +39,6 @@ A full progression, gamification and achievement system for Jellyfin that reward
 
 - [Overview](#-overview)
 - [What's new in v2.4.0 — Jellyfin 12, targeted badges, games](#-whats-new-in-v240--jellyfin-12-targeted-badges-games) — a 12.0 build in every release, avatar-menu entry, badges that point at one thing, JellyEmu games, shop bling on the card
-- [What's new in v2.3.0 — Friends & Foundations](#-whats-new-in-v230--friends--foundations) — friend profile cards, shareable card skins, library + artist completion, Tracearr, reliability + published-build fixes
 - [Core features](#-core-features)
   - [Badge system](#-badge-system) — 200+ achievements, 35+ categories, 6 rarities
   - [Rank system](#-rank-system) — 10 tiers from Rookie to Immortal
@@ -83,69 +82,46 @@ Designed to integrate cleanly with modern Jellyfin setups and themes like NetFin
 
 ## 🚀 What's new in v2.4.0 — Jellyfin 12, targeted badges, games
 
-**Drop-in upgrade from v2.3.x — no schema breakage or manual migration.** Full notes in [docs/release-notes/v2.4.0.md](docs/release-notes/v2.4.0.md).
+Achievement Badges runs on Jellyfin 12, gains the first badges that can point at one specific thing in your library, learns to count games, and finally shows the bling you bought in the shop to everyone else. **Drop-in upgrade from v2.3.x — no schema breakage or manual migration.** Full notes in [docs/release-notes/v2.4.0.md](docs/release-notes/v2.4.0.md).
 
-- **Jellyfin 12 (#109, #117, #122).** Every release now ships two packages: `x.y.z.0` for Jellyfin 10.11 (.NET 9) and `x.y.z.1` for Jellyfin 12 (.NET 10). The catalog picks the right one for your server. On 12 the **Achievements entry lives in the avatar menu** (right below Profile) and the **equipped badge strip sits in the toolbar** beside the avatar, since the modern layout hides the old drawer and header. Every call now sends the `Authorization` header 12 requires (legacy `X-Emby-Token` alone answers 401 there). The Revamp admin page fits inside the MUI dashboard, links use `#/` routes, and the tab is named Achievements. Thanks to [@camarigor](https://github.com/camarigor) for both PRs and to [@Lyxon1337](https://github.com/Lyxon1337) for the report.
-- **Targeted badges (#107).** Two new metrics, `ContainerCompletionPercent` and `ItemPlayCount`, point a badge at one series, season, collection, playlist, album or item, picked from a library search in the admin page. Retroactive on creation, and they move on Jellyfin's played flag, so marking a season watched by hand counts.
-- **Game achievements (#115).** Games played through JellyEmu earn achievements: nine built-in badges (sessions, distinct games, hours, platforms) and three custom-badge metrics.
-- **Shop bling on the shareable card (#42).** Everything you equip in the shop — custom title, badge frame, profile theme, profile border, animated background and avatar — now shows on all three card skins and on the friends-drawer card, under the same privacy toggles as the equipped badges.
-- **Fixed.** Toast placement never applied under Revamp (#116). The user-id poll fired ~25 `Users/Me` requests on the login page. The Revamp stylesheet was cached under a stale token, so a stylesheet change could take a day to reach browsers. The admin hero reported v1.9.2 on every release. Reset now refuses a malformed or unknown user id instead of answering 200, admin-page errors name the request that failed, and a watch-history scan that finds nothing tells you to check the account's library access (#97).
+### 🟣 Jellyfin 12 (#109, #117, #122)
 
----
+- **Two packages per release.** `x.y.z.0` is the Jellyfin 10.11 build (.NET 9) and `x.y.z.1` the Jellyfin 12 build (.NET 10). The plugin catalog picks the right one for your server; upgrading the server from 10.11 to 12 offers the `.1` build as a plugin update afterwards.
+- **The Achievements entry moved to the avatar menu.** Jellyfin 12's modern layout hides the old drawer and header, so the entry now sits right below **Profile** in the avatar menu and the equipped-badge strip sits in the toolbar beside the avatar. The legacy layouts (desktop-legacy, mobile-legacy, TV) keep the drawer entry.
+- **Every call sends the `Authorization` header 12 requires.** Jellyfin 12 switches legacy authorization off, so the old `X-Emby-Token` alone answers 401 — which made every earlier version's page dead on a 12 server. Both headers are sent now; 10.11 accepts either.
+- The Revamp admin page fits inside the MUI dashboard, links use `#/` routes, and the tab is named *Achievements* while the page is open.
 
-## 🚀 What's new in v2.3.1
+### 🎯 Targeted badges (#107)
 
-A fast follow to 2.3.0, fixing the music feature it shipped and cleaning up the leaderboards. **Drop-in upgrade from v2.3.0 / v2.2.x — no schema breakage.**
+- Two new metrics point a badge at **one** thing: `ContainerCompletionPercent` (played items over total in one series, season, collection, playlist or album — 100 means you finished it) and `ItemPlayCount` (Jellyfin's own play count for a single movie, episode or track — 1 is "watched it", 3005 is the Childish Gambino badge).
+- A **library picker** in the admin page finds the target by name; the stored reference keeps the id and the name together, so the badge survives both a rename and a delete-and-re-add.
+- **Retroactive on creation** — anyone who already finished the target unlocks it immediately, no scan — and it moves on Jellyfin's played flag, so marking a season watched by hand counts.
+- Arbitrary groupings ("One Piece: Alabasta") go through a Jellyfin collection. See [Targeted badges](#targeted-badges).
 
-- **Music actually counts (#93/#94, #95/#96).** Tracks no longer inherit genres and tags from their album or artist, so a "50 disco tracks" badge stops counting dance and pop plays. And the watch-history scan now replays played music, so the artist discography badges from 2.3.0 can be rebuilt instead of only ever building from live playback. Thanks to [@Daemon-Network](https://github.com/Daemon-Network) for finding both within a day of release.
-- **See your own rank.** The admin and user-facing leaderboards now always show your position — highlighted if you land in the top ten, appended with your true rank if you rank lower (across all six category boards on the standalone page).
-- **Deleted accounts cleaned up.** They no longer appear on leaderboards as raw GUIDs or inflate the user count, the admin Stats and Leaderboard tabs refresh on open, and a new **Prune deleted accounts** admin button reclaims their storage.
-- The **Blades** shareable card skin is now **Aurora**, matching its redesign, localized across all eight languages.
+### 🎮 Game achievements (#115)
 
----
+- Games played through **JellyEmu** now earn achievements. JellyEmu reports each session to Jellyfin as a playback session; the plugin now measures those on their own terms (session length, floored and capped, both configurable) instead of dropping them as runtime-less books.
+- **Nine built-in badges** under a new Games category (sessions, distinct games, hours, platforms) and **three custom-badge metrics** (distinct games on a platform, distinct games by a developer, hours in one specific game via the picker). See [Game achievements](#game-achievements-jellyemu).
 
-## 🚀 What's new in v2.3.0 — Friends & Foundations
+### 🪪 Everything you equip shows on your cards (#42)
 
-Achievement Badges gains a social layer — see how your friends are doing, and share your own card — on top of a run of reliability fixes, several of which matter to anyone on the published v2.2.0 build. **Drop-in upgrade from v2.2.x / v2.1.x / v2.0.x — no schema breakage or manual migration.**
+- Your **custom title, badge frame, profile theme, profile border, animated background and avatar** now all show on the shareable profile card (all three skins) and on the card that opens when someone clicks your name in the friends drawer — under the same privacy toggles as the equipped badges. Animated backgrounds play the actual video loop behind the card.
+- Two things that never worked on the achievements page itself are fixed on the way: profile **borders** never showed under the Revamp style, and badge **frames** applied only to one row of one tab — they now ring the showcase pills, the header strip and the drawer showcase.
+- **"Pastel has un-hidden elements"** (TsunamicFlame's report in #42) was real: every gradient theme let Jellyfin's own page show through the top of the achievements page. Fixed for all 14 themes.
 
-### 👋 Friend profile cards (#76)
+### 🩺 Diagnostics for #97
 
-Hover a friend's name or avatar in the drawer for a summary card — rank tier, completion, score, best streak and equipped showcase. Click to pin a larger card that survives the pointer leaving, closes on Escape or an outside click, and is reachable by keyboard. It's backed by a public-summary endpoint that's privacy-gated to expose nothing the leaderboard doesn't: anyone opted out of being listed is equally invisible here.
+- Admin-page errors now **name the request that failed** (`Request failed: 400 (GET users/…/summary)`), and a failed reload is no longer reported as a failed reset or scan.
+- **Reset** answers 400 for a malformed id and 404 for an account Jellyfin doesn't know, instead of 200 for anything.
+- A **watch-history scan that finds nothing** says so and points at the account's library access, in all 8 languages.
 
-### 🪪 Shareable card skins
+### 🧱 Fixes
 
-Three server-rendered profile-card skins — **Console** (default), **Metro**, and **Aurora Spine** — each drawn with the card owner's own rank colour as the single accent. Every user picks their own skin in preferences; a card opened without an explicit style falls back to the owner's choice.
+- Toast position never applied under Revamp — all five positions rendered top-right (#116, @camarigor).
+- The Revamp stylesheet was cached under a stale token in three places, so stylesheet changes could reach browsers a day late.
+- ~25 `Users/Me` requests fired on the login page; the admin hero announced "v1.9.2 / ABI 10.11.0.0" forever; the shop's "Auto-unlock at N score" pill was clipped.
 
-### 🎯 Completion tracking that finally runs
-
-- **Library completion (#80, #79).** The five library-completion badges are now computed during the watch-history scan, so they can unlock through normal use instead of sitting at zero on every install.
-- **Artist discography completion (#81, #24).** Played tracks over total tracks per artist — a badge for completing any artist, plus a parameterised metric for a specific one.
-
-### 📡 Tracearr history crediting (#77 / #84 / #85)
-
-Credit genuine first watches the library scan can't prove on its own — media you deleted, and true rewatch counts — from Tracearr's public v2 API. A standalone sync button is made idempotent by a ledger, so pressing it twice credits nothing the second time. Configured admin-side with a URL and token; nothing is required on the Tracearr side. See [Tracearr integration](#-tracearr-integration).
-
-### 🔔 Notifications and layout
-
-- **Per-user toast position** — any of the four corners or top-centre, applied live.
-- Unlock toasts moved off the subtitle line, and the floating friends button hides while the video player is on screen.
-- **Admin-set default UI style, optionally locked (#43)** — start users on Classic or Revamp, and optionally make it the only choice so the page matches your Jellyfin theme; a user's own pick is remembered and returns if the lock is lifted.
-
-### 🧱 Reliability
-
-- **Watch-time carry** survives a session break, a restart, and a media-file replacement or quality upgrade (keyed by media identity, #89), with a configurable retention window (#87). The scan clears the carry of exactly what it credits (#91/#92), so a later partial rewatch can't reach the completion gate on minutes already counted.
-- **Counter resilience** — rebuilt counters are floored and dated snapshots kept so a scan never loses progress; the score bank is floored on rebuild so deleted media can't zero a balance; backfill is serialised per user; and failed loads surface instead of being drawn as empty or loading.
-
-### 🩹 Fixes for anyone on v2.2.0
-
-- **Empty twin profiles could swallow unlocked badges (#59/#60).** `GetOrCreateProfile` now normalises the user id first, so the friends and messaging paths can't create an empty profile beside the live one that later folds over it. Opening the friends panel was enough to trigger it.
-- **The injected UI never mounted under gzip (#46).** The client bootstrap now injects into compressed responses instead of skipping them — every browser asks for gzip, so on v2.2.0 the sidebar, widget, item ribbon and toasts silently failed to load. Also behind the #37 and #36 reports.
-
-### 🌍 Localization
-
-Every new interface string is translated across all 8 UI languages, and the admin user-picker strings were completed in the seven non-English locales for full key parity.
-
-Big thanks to **[@camarigor](https://github.com/camarigor)** for the friend profiles, Tracearr integration, the library and artist completion wiring, the watch-carry work, and the profile data-loss + gzip injection fixes.
+Big thanks to **[@camarigor](https://github.com/camarigor)** for the Jellyfin 12 build and web-client work (#117, #122), targeted badges (#108), game achievements (#120), the shop cosmetics on the card (#119), the toast fix (#118) and the dependency round (#128); to **[@Lyxon1337](https://github.com/Lyxon1337)** for the Jellyfin 12 report; to **[@unknownTGG](https://github.com/unknownTGG)** for the targeted-badges request; and to **[@TsunamicFlame](https://github.com/TsunamicFlame)** for #42, #115, #116 and the field testing behind them.
 
 ---
 
@@ -238,12 +214,14 @@ Standout sub-collections:
 - **14 Avatars** — emoji swap for the rank-medal icon
 - **8 Animated Backgrounds** — 4 CSS + 4 HD MP4 video loops, viewport-fixed with dimming overlay
 - **6 Profile Borders** — animated effects on the hero card
+- **Seen by everyone (v2.4.0)** — every equipped cosmetic shows on your shareable profile card and on the card friends open from the drawer, under the same privacy toggles as your equipped badges. See [What's new in v2.4.0](#-everything-you-equip-shows-on-your-cards-42).
 
 ### 👥 Friends drawer
 
 - **Bi-directional** friendship with a proper **request / accept** flow — nobody follows you silently
 - **Global floating button** anchored bottom-left on every Jellyfin page — not just the achievements tab. Auto-hides on `/dashboard` + `/plugins` pages and during media playback; reappears as soon as you leave either state
 - **Xbox-guide-style side drawer** with four sub-tabs: Friends / Requests / Find / Messages
+- **Profile cards** — hover a name for a summary, click to pin a larger card: rank, completion, score, streak, equipped badges, and since v2.4.0 the friend's custom title, badge frame, theme accent, profile border and avatar
 - **Hover/click profile cards (v2.3.0, #76)** — hovering a friend's name or avatar opens a summary card (rank tier, completion, score, best streak, equipped showcase); clicking pins a larger card that closes on Escape or an outside click and is keyboard-reachable. Served by a public-summary endpoint gated by the same leaderboard opt-out, so it exposes nothing extra
 - **Jellyfin profile-image avatars** per friend row (initials fall back when no image is set)
 - **Online / offline** status pulled live from Jellyfin's `ISessionManager`, with a 15-minute grace window so casual browsing still counts as online (not just active playback)
@@ -311,8 +289,8 @@ Xbox-Guide-style chat built into the Friends drawer. No external service, no Web
 ### 🏠 UI integration
 
 - **Sidebar entry** auto-injected into the Jellyfin nav menu (works on web, iOS, and Android after restart)
-- **Jellyfin 12**: the modern layout has no navigation drawer, so the entry sits in the avatar menu, right below Profile; the legacy layouts (desktop-legacy, mobile-legacy, TV) keep the drawer entry. The same plugin build runs on 10.11 and 12.
-- **Equipped badge showcase** in header + profile (configurable slot count, 1-10)
+- **Jellyfin 12**: the modern layout has no navigation drawer, so the entry sits in the avatar menu, right below Profile, and the equipped strip in the toolbar; the legacy layouts (desktop-legacy, mobile-legacy, TV) keep the drawer entry.
+- **Equipped badge showcase** in header + profile (configurable slot count, 1-10), ringed with your equipped badge frame
 - **Xbox-style unlock toasts** with per-rarity colors (6 tiers), Xbox logo → trophy swap, shimmer sweep, and confetti on rare+ unlocks
 - **Achievement sound** — Xbox 360 chime for common/uncommon, rare Xbox One chime for rare/epic/legendary/mythic
 - **Diamond spritesheet** for legendary/mythic unlocks (147-frame rotating crystal animation)
@@ -373,7 +351,8 @@ A gear icon on the achievements page opens a full settings panel with auto-save:
 - **Restrict Badge Visibility** — users can only see their own badges
 - **Disable Badge Categories** — hide entire categories (e.g. "Late Night" for family servers)
 - **Custom Welcome Message** — text shown on the achievements page
-- **Reset User Progress** — wipe a specific user's badges via admin endpoint
+- **Reset User Progress** — wipe a specific user's badges via admin endpoint (v2.4.0: refuses a malformed or unknown user id instead of answering 200)
+- **Diagnosable errors (v2.4.0)** — every admin-page failure names the request that failed, and a watch-history scan that finds nothing tells you to check the account's library access
 - **Enable/disable individual badges** — useful if your server can't satisfy some criteria
 - **Visual badge editor** — form-based creator for custom badges
 - **Custom badge builder (v2.1.0)** — simple badges via an admin form, or **compound AND/OR criteria** + import/export via the `/Plugins/AchievementBadges/custom-badges` API. See [Custom badges](#-custom-badges)
@@ -924,6 +903,7 @@ Full per-version notes and signed binaries live on the GitHub Releases page:
 
 Highlights:
 
+- **v2.4.0** — Jellyfin 12, targeted badges, games: two packages per release (`x.y.z.0` for 10.11, `x.y.z.1` for 12) with the entry in 12's avatar menu and the `Authorization` header 12 requires (#109/#117/#122); `ContainerCompletionPercent` + `ItemPlayCount` with a library picker (#107/#108); JellyEmu game achievements (#115/#120); every shop cosmetic on the shareable card and the drawer card (#42/#119); toast position under Revamp (#116/#118); Pastel page leak, invisible borders/frames, stale stylesheet token, #97 diagnostics
 - **v2.3.1** — music fixes + leaderboards: tracks stop inheriting album/artist genres so custom music badges count correctly (#94), the scan replays played music so discography badges rebuild (#96), both leaderboards show your own rank, deleted accounts are excluded + prunable, and the Blades skin becomes Aurora
 - **v2.3.0** — Friends & Foundations: hover/click friend profile cards (#76) behind a privacy-gated summary endpoint; three shareable card skins (Console / Metro / Aurora Spine) chosen per user; library completion now computes during the scan (#80) and new artist discography completion (#81, #24); Tracearr history crediting (#77/#84/#85); watch-time carry across restarts and file replacements (#87/#89/#91/#92); admin-set default UI style + lock (#43); plus the profile data-loss (#59/#60) and gzip injection (#46) fixes for published builds
 - **v2.2.0** — Your Screen, Your Rules: optional Custom Tabs + Plugin Pages hosts and independent per-user navigation controls (#37); grouped/individual and all-device/origin-device unlock notification modes (#38); clickable, keyboard-accessible real unlock toasts; 10-toast admin grouping preview; build-specific client cache keys; full 8-language coverage
@@ -944,6 +924,62 @@ Highlights:
 ## 🗂️ Previous release notes
 
 Full notes for earlier versions, newest first.
+
+## 🚀 What's new in v2.3.1
+
+A fast follow to 2.3.0, fixing the music feature it shipped and cleaning up the leaderboards. **Drop-in upgrade from v2.3.0 / v2.2.x — no schema breakage.**
+
+- **Music actually counts (#93/#94, #95/#96).** Tracks no longer inherit genres and tags from their album or artist, so a "50 disco tracks" badge stops counting dance and pop plays. And the watch-history scan now replays played music, so the artist discography badges from 2.3.0 can be rebuilt instead of only ever building from live playback. Thanks to [@Daemon-Network](https://github.com/Daemon-Network) for finding both within a day of release.
+- **See your own rank.** The admin and user-facing leaderboards now always show your position — highlighted if you land in the top ten, appended with your true rank if you rank lower (across all six category boards on the standalone page).
+- **Deleted accounts cleaned up.** They no longer appear on leaderboards as raw GUIDs or inflate the user count, the admin Stats and Leaderboard tabs refresh on open, and a new **Prune deleted accounts** admin button reclaims their storage.
+- The **Blades** shareable card skin is now **Aurora**, matching its redesign, localized across all eight languages.
+
+---
+
+## 🚀 What's new in v2.3.0 — Friends & Foundations
+
+Achievement Badges gains a social layer — see how your friends are doing, and share your own card — on top of a run of reliability fixes, several of which matter to anyone on the published v2.2.0 build. **Drop-in upgrade from v2.2.x / v2.1.x / v2.0.x — no schema breakage or manual migration.**
+
+### 👋 Friend profile cards (#76)
+
+Hover a friend's name or avatar in the drawer for a summary card — rank tier, completion, score, best streak and equipped showcase. Click to pin a larger card that survives the pointer leaving, closes on Escape or an outside click, and is reachable by keyboard. It's backed by a public-summary endpoint that's privacy-gated to expose nothing the leaderboard doesn't: anyone opted out of being listed is equally invisible here.
+
+### 🪪 Shareable card skins
+
+Three server-rendered profile-card skins — **Console** (default), **Metro**, and **Aurora Spine** — each drawn with the card owner's own rank colour as the single accent. Every user picks their own skin in preferences; a card opened without an explicit style falls back to the owner's choice.
+
+### 🎯 Completion tracking that finally runs
+
+- **Library completion (#80, #79).** The five library-completion badges are now computed during the watch-history scan, so they can unlock through normal use instead of sitting at zero on every install.
+- **Artist discography completion (#81, #24).** Played tracks over total tracks per artist — a badge for completing any artist, plus a parameterised metric for a specific one.
+
+### 📡 Tracearr history crediting (#77 / #84 / #85)
+
+Credit genuine first watches the library scan can't prove on its own — media you deleted, and true rewatch counts — from Tracearr's public v2 API. A standalone sync button is made idempotent by a ledger, so pressing it twice credits nothing the second time. Configured admin-side with a URL and token; nothing is required on the Tracearr side. See [Tracearr integration](#-tracearr-integration).
+
+### 🔔 Notifications and layout
+
+- **Per-user toast position** — any of the four corners or top-centre, applied live.
+- Unlock toasts moved off the subtitle line, and the floating friends button hides while the video player is on screen.
+- **Admin-set default UI style, optionally locked (#43)** — start users on Classic or Revamp, and optionally make it the only choice so the page matches your Jellyfin theme; a user's own pick is remembered and returns if the lock is lifted.
+
+### 🧱 Reliability
+
+- **Watch-time carry** survives a session break, a restart, and a media-file replacement or quality upgrade (keyed by media identity, #89), with a configurable retention window (#87). The scan clears the carry of exactly what it credits (#91/#92), so a later partial rewatch can't reach the completion gate on minutes already counted.
+- **Counter resilience** — rebuilt counters are floored and dated snapshots kept so a scan never loses progress; the score bank is floored on rebuild so deleted media can't zero a balance; backfill is serialised per user; and failed loads surface instead of being drawn as empty or loading.
+
+### 🩹 Fixes for anyone on v2.2.0
+
+- **Empty twin profiles could swallow unlocked badges (#59/#60).** `GetOrCreateProfile` now normalises the user id first, so the friends and messaging paths can't create an empty profile beside the live one that later folds over it. Opening the friends panel was enough to trigger it.
+- **The injected UI never mounted under gzip (#46).** The client bootstrap now injects into compressed responses instead of skipping them — every browser asks for gzip, so on v2.2.0 the sidebar, widget, item ribbon and toasts silently failed to load. Also behind the #37 and #36 reports.
+
+### 🌍 Localization
+
+Every new interface string is translated across all 8 UI languages, and the admin user-picker strings were completed in the seven non-English locales for full key parity.
+
+Big thanks to **[@camarigor](https://github.com/camarigor)** for the friend profiles, Tracearr integration, the library and artist completion wiring, the watch-carry work, and the profile data-loss + gzip injection fixes.
+
+---
 
 ## 🚀 What's new in v2.2.0 — Your Screen, Your Rules
 
@@ -1023,8 +1059,11 @@ Not expected, just appreciated. Contributions — issues, PRs, translation fixes
 ## 🙏 Credits & thanks
 
 - **[@frenchyx24](https://github.com/frenchyx24)** — **full French translation of all 171 built-in badges** (hand-translated titles + descriptions, merged in v1.7.2 from [issue #5](https://github.com/ZL154/AchievementBadges_for_Jellyfin/issues/5)). Also filed the original multi-language feature request and the deactivate-equipped-badges / quest-customization / Xbox-logo bug reports that shaped v1.6.1 → v1.7.x. Merci beaucoup !
-- **[@camarigor](https://github.com/camarigor)** — the v2.3.0 friend profile cards and public-summary endpoint (#76), Tracearr history integration (#77/#84/#85), library + artist completion wiring (#80/#81), the watch-time carry reliability work (#87/#89/#91/#92), the profile data-loss (#59/#60) and gzip-injection (#46) fixes that mattered to every published build, and the v2.3.1 music fixes (#94 genre inheritance, #96 the scan replaying music).
+- **[@camarigor](https://github.com/camarigor)** — the v2.4.0 Jellyfin 12 build and web-client rework (#117/#122), targeted badges (#108), JellyEmu game achievements (#120), the shop cosmetics on the shareable card (#119) and the toast-position fix (#118); before that the v2.3.0 friend profile cards and public-summary endpoint (#76), Tracearr history integration (#77/#84/#85), library + artist completion wiring (#80/#81), the watch-time carry reliability work (#87/#89/#91/#92), the music fixes in v2.3.1 (#94/#96), and the profile data-loss (#59/#60) and gzip-injection (#46) fixes.
 - **[@Daemon-Network](https://github.com/Daemon-Network)** — the original Music & Books request (#24), and thorough real-music-library testing of 2.3.0 that surfaced the three music bugs fixed in v2.3.1.
+- **[@TsunamicFlame](https://github.com/TsunamicFlame)** — the Custom Tabs / Plugin Pages request (#37), the friend profile cards and shop-cosmetics-on-the-card request (#42), the JellyEmu game achievements request (#115), the toast-position report (#116), and the field testing behind all of them.
+- **[@unknownTGG](https://github.com/unknownTGG)** — the targeted-badges request (#107) that became `ContainerCompletionPercent` and `ItemPlayCount`.
+- **[@Lyxon1337](https://github.com/Lyxon1337)** — the Jellyfin 12 report (#109).
 - **xdnewlun1 (Techno Cricket, CCDC)** — responsible disclosure of 12 security findings in v1.6.0 including the critical IDOR that led to the `UserOwnershipFilter`.
 - **Uenify** — the Xbox-style toast animation (circle grow, banner sweep, shimmer, text slide) is a port of his [CodePen](https://codepen.io/uenify) to vanilla JS + per-rarity colour palettes.
 - Translations for es / de / it / pt / zh-CN / ja started from an automated pass — native-speaker polish welcomed via PR.
