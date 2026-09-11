@@ -896,7 +896,8 @@ font-size:0.88em;
             if (Array.isArray(plugins)) {
                 for (var i = 0; i < plugins.length; i++) {
                     var pl = plugins[i] || {};
-                    if (String(pl.Id || '').toLowerCase() === PLUGIN_GUID) {
+                    // Jellyfin writes GUIDs without hyphens; compare on the digits.
+                    if (String(pl.Id || '').toLowerCase().replace(/-/g, '') === PLUGIN_GUID.replace(/-/g, '')) {
                         if (pl.Version) heroMeta.version = String(pl.Version);
                         if (pl.Status) heroMeta.statusLabel = String(pl.Status);
                         break;
