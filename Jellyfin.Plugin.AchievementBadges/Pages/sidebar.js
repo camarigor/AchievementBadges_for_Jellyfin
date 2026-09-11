@@ -335,14 +335,27 @@
     function injectHeader(){
         try {
             if (_showcaseEnabled === false) return; // admin or user disabled
-            if(document.getElementById(HEADER_ID)){ return; }
-            var headerRight=document.querySelector('.headerRight')||document.querySelector('.skinHeader .headerButton:last-child');
-            if(!headerRight){
-                // [Jellyfin 12] The modern layout keeps .skinHeader in the DOM
-                // but hidden and empty. Its toolbar is MUI: sit right before
-                // the box that holds the avatar button.
-                var avatarBtn=document.querySelector('button[aria-controls="app-user-menu"]');
-                if(avatarBtn && avatarBtn.parentElement && avatarBtn.parentElement.parentElement){ headerRight=avatarBtn.parentElement; }
+            var legacyRight=document.querySelector('.headerRight')||document.querySelector('.skinHeader .headerButton:last-child');
+            // [Jellyfin 12] The modern layout keeps .skinHeader in the DOM
+            // but hidden, and .headerRight is still inside it, so "found
+            // .headerRight" is not the same as "found a header anyone can
+            // see". Its real toolbar is MUI: sit right before the box that
+            // holds the avatar button. Measured on 12.0.0: the strip went
+            // into the hidden header with all five badges and nobody saw it.
+            var avatarBtn=document.querySelector('button[aria-controls="app-user-menu"]');
+            var modernRight=(avatarBtn && avatarBtn.parentElement && avatarBtn.parentElement.parentElement) ? avatarBtn.parentElement : null;
+            function shown(el){ return !!(el && el.offsetParent!==null); }
+            var headerRight = shown(legacyRight) ? legacyRight : (shown(modernRight) ? modernRight : (legacyRight||modernRight));
+            var existing=document.getElementById(HEADER_ID);
+            if(existing){
+                // Already mounted, but into a header that later turned out to
+                // be the hidden one (the login page mounts before the MUI
+                // toolbar exists): move it rather than leave it invisible.
+                if(headerRight && !shown(existing) && shown(headerRight) && existing.parentElement!==headerRight.parentElement && headerRight.parentElement){
+                    headerRight.parentElement.insertBefore(existing, headerRight);
+                    console.log('[AchievementBadges] injectHeader: moved badges container to the visible header');
+                }
+                return;
             }
             if(!headerRight){ return; }
             console.log('[AchievementBadges] injectHeader: found header, adding badges container');

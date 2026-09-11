@@ -474,8 +474,27 @@ public class AchievementBadgesController : ControllerBase
     [HttpPost("users/{userId}/reset")]
     [Authorize(Policy = "RequiresElevation")]
     [ProducesResponseType(typeof(List<AchievementBadge>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
     public ActionResult<List<AchievementBadge>> ResetBadges([FromRoute] string userId)
     {
+        // [issue #97] This used to answer 200 for any string at all, including
+        // "undefined" and ids of accounts that do not exist, quietly creating a
+        // fresh profile under that key. A reset that cannot possibly reach a
+        // real account now says so, with a body the admin page can display.
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return BadRequest(new { Message = "The user id is not a valid GUID." });
+        }
+
+        bool exists;
+        try { exists = _userManager.GetUserById(userGuid) is not null; }
+        catch { exists = false; }
+        if (!exists)
+        {
+            return NotFound(new { Message = "No Jellyfin account has this user id." });
+        }
+
         var badges = _badgeService.ResetBadgesForUser(userId);
         return Ok(badges);
     }

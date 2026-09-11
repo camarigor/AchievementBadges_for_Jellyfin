@@ -609,6 +609,7 @@
   "admin.msg.scanning_history": "Scansione cronologia... potrebbe richiedere tempo...",
   "admin.msg.scanning_all": "Scansione cronologia per TUTTI gli utenti... potrebbe richiedere tempo...",
   "admin.msg.scan_done": "Scansione cronologia completata!",
+  "admin.msg.scan_empty_hint": "Jellyfin non ha restituito elementi riprodotti per questo account. La scansione vede solo le librerie a cui l'account ha accesso: controlla Dashboard > Utenti > questo utente > Accesso.",
   "admin.msg.scan_all_done": "Scansione cronologia completata per tutti gli utenti!",
   "admin.msg.backfill_failed": "Backfill fallito.",
   "admin.msg.found": "trovati.",

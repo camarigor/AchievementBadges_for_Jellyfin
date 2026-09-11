@@ -230,4 +230,53 @@ public class Jellyfin12ShellTests
         Assert.Contains("function injectSidebar()", js, StringComparison.Ordinal);
         Assert.Contains("querySelectorAll('.navMenuOption')", js, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void TheEquippedStripPrefersAHeaderSomeoneCanSee()
+    {
+        // Measured on 12.0.0: .headerRight still exists inside the hidden
+        // .skinHeader, so "found .headerRight" put the strip where nobody
+        // could see it and the MUI fallback never ran. The visible target
+        // wins, and a strip already mounted into the hidden header is moved.
+        var js = ReadEmbedded("sidebar.js");
+
+        var injectHeader = js.IndexOf("function injectHeader()", StringComparison.Ordinal);
+        var shown = js.IndexOf("function shown(el){ return !!(el && el.offsetParent!==null); }", injectHeader, StringComparison.Ordinal);
+        var choose = js.IndexOf("shown(legacyRight) ? legacyRight : (shown(modernRight) ? modernRight", shown, StringComparison.Ordinal);
+        var move = js.IndexOf("headerRight.parentElement.insertBefore(existing, headerRight);", choose, StringComparison.Ordinal);
+        Assert.True(injectHeader >= 0 && shown > injectHeader && choose > shown && move > choose);
+    }
+
+    [Fact]
+    public void TheUserIdPollStopsBeforeItsLastDitchRequest()
+    {
+        // fetchJson waits up to 2s for a token. While it waited, the poll
+        // that had just given up kept ticking and queued a fresh Users/Me
+        // every 200ms: ~25 requests per caller on the login page, all 401.
+        var js = ReadEmbedded("standalone.js");
+
+        var poll = js.IndexOf("function getCurrentUserId()", StringComparison.Ordinal);
+        var giveUp = js.IndexOf("if (attempts >= MAX_ATTEMPTS) {", poll, StringComparison.Ordinal);
+        var stop = js.IndexOf("clearInterval(timer); timer = null;", giveUp, StringComparison.Ordinal);
+        var lastDitch = js.IndexOf("fetchJson('Users/Me')", giveUp, StringComparison.Ordinal);
+        Assert.True(poll >= 0 && giveUp > poll && stop > giveUp && stop < lastDitch);
+    }
+
+    [Fact]
+    public void TheAdminPageDoesNotHardcodeVersionsAnyMore()
+    {
+        var html = ReadEmbedded("Pages.index.html");
+
+        // The Revamp stylesheet is served immutable for a day, keyed by this
+        // token. A literal token stops busting the moment it goes stale; the
+        // injected bootstrap tag carries the one the running DLL stamped.
+        Assert.DoesNotContain("var CSS_BUST = 'v=", html, StringComparison.Ordinal);
+        Assert.Contains("script[src*=\"client-script/sidebar\"]", html, StringComparison.Ordinal);
+
+        // The hero used to announce v1.9.2 on Jellyfin ABI 10.11.0.0 forever.
+        Assert.DoesNotContain("version: '1.9.2'", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("targetAbi: '10.11.0.0'", html, StringComparison.Ordinal);
+        Assert.Contains("heroMetaUrl('Plugins')", html, StringComparison.Ordinal);
+        Assert.Contains("heroMetaUrl('System/Info/Public')", html, StringComparison.Ordinal);
+    }
 }

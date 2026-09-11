@@ -737,6 +737,17 @@ public class WatchHistoryBackfillService
                 "[AchievementBadges] Backfill done for {Username}: {Movies} movies, {Episodes} episodes, {Series} series, {Books} books, {Tracks} tracks, {Libraries} libraries.",
                 username, moviesWatched, episodesWatched, seriesCompleted, booksCompleted, tracksPlayed, librariesFound.Count);
 
+            // [issue #97] Every query above is scoped to the account's library
+            // access, so an account that can see none of the libraries holding
+            // its history comes back with zeros across the board while its live
+            // playback keeps working. That reads as "the scan is broken"; say
+            // what it actually means so the admin checks the right screen.
+            var nothingPlayed = moviesWatched == 0 && episodesWatched == 0 && booksCompleted == 0 && tracksPlayed == 0;
+            var hint = nothingPlayed
+                ? "Jellyfin returned no played items for this account. The scan only sees libraries the account has access to: "
+                  + "check Dashboard > Users > this user > Access, and that the items are marked played for this user."
+                : null;
+
             return new
             {
                 UserId = userId,
@@ -747,6 +758,7 @@ public class WatchHistoryBackfillService
                 BooksCompleted = booksCompleted,
                 TracksPlayed = tracksPlayed,
                 LibrariesVisited = librariesFound.Count,
+                Hint = hint,
                 Success = true
             };
         }

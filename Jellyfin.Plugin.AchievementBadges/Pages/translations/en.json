@@ -617,6 +617,7 @@
   "admin.msg.scanning_history": "Scanning watch history... this may take a while...",
   "admin.msg.scanning_all": "Scanning watch history for ALL users... this may take a while...",
   "admin.msg.scan_done": "Watch history scan complete!",
+  "admin.msg.scan_empty_hint": "Jellyfin returned no played items for this account. The scan only sees libraries the account can access: check Dashboard > Users > this user > Access.",
   "admin.msg.scan_all_done": "Watch history scan complete for all users!",
   "admin.msg.backfill_failed": "Backfill failed.",
   "admin.msg.found": "found.",

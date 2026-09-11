@@ -609,6 +609,7 @@
   "admin.msg.scanning_history": "Escaneando histórico... pode demorar um pouco...",
   "admin.msg.scanning_all": "Escaneando histórico de TODOS os usuários... pode demorar um pouco...",
   "admin.msg.scan_done": "Escaneamento de histórico concluído!",
+  "admin.msg.scan_empty_hint": "O Jellyfin não retornou itens reproduzidos para esta conta. A varredura só vê as bibliotecas às quais a conta tem acesso: verifique Painel > Usuários > este usuário > Acesso.",
   "admin.msg.scan_all_done": "Escaneamento de histórico concluído para todos os usuários!",
   "admin.msg.backfill_failed": "Backfill falhou.",
   "admin.msg.found": "encontrados.",

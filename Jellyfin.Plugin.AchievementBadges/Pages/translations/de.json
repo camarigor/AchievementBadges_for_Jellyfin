@@ -609,6 +609,7 @@
   "admin.msg.scanning_history": "Verlauf wird gescannt... das kann eine Weile dauern...",
   "admin.msg.scanning_all": "Verlauf wird für ALLE Benutzer gescannt... das kann eine Weile dauern...",
   "admin.msg.scan_done": "Verlaufsscan abgeschlossen!",
+  "admin.msg.scan_empty_hint": "Jellyfin hat für dieses Konto keine abgespielten Elemente zurückgegeben. Der Scan sieht nur Bibliotheken, auf die das Konto Zugriff hat: prüfe Dashboard > Benutzer > dieser Benutzer > Zugriff.",
   "admin.msg.scan_all_done": "Verlaufsscan für alle Benutzer abgeschlossen!",
   "admin.msg.backfill_failed": "Backfill fehlgeschlagen.",
   "admin.msg.found": "gefunden.",

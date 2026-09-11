@@ -529,7 +529,23 @@ font-size:0.88em;
     // controller's `Cache-Control: public, max-age=86400, immutable`, browsers
     // now cache assets across page loads. Plugin updates change the v= and
     // produce a fresh URL, naturally busting the cache.
-    var CSS_BUST = 'v=1.9.2';
+    // The controller serves client-script/* as `immutable, max-age=86400`,
+    // so this token IS the cache key: a stale one means a browser keeps the
+    // previous release's stylesheet for a day after an update. It used to be
+    // a hand-maintained literal ('v=1.9.2') that nobody bumped since 1.9.2.
+    // The injected bootstrap scripts carry the token the running DLL stamps
+    // (assembly version + module id, see ClientAssetVersion); read it off
+    // their <script src> so the stylesheet busts on exactly the same event.
+    var CSS_BUST = (function () {
+        try {
+            var tag = document.querySelector('script[src*="client-script/sidebar"], script[src*="client-script/enhance"], script[src*="client-script/standalone"]');
+            var m = tag && /[?&](v=[^&#"']+)/.exec(tag.getAttribute('src') || '');
+            if (m) return m[1];
+        } catch (_) {}
+        // No injected tag (middleware-only install where the page is opened
+        // in isolation): fall back to a per-load token rather than a stale one.
+        return 'v=' + Date.now();
+    })();
     function cssUrl() {
         var ac = getApi();
         var base;
@@ -845,6 +861,56 @@ font-size:0.88em;
         { num: '04', title: 'Maintenance',           sub: 'audit, history',                      cols: 'cols-2' }
     ];
 
+    // Live plugin and server versions for the hero. These used to be the
+    // literals 'v1.9.2' and 'Jellyfin ABI 10.11.0.0', which nothing ever
+    // updated: every later release still announced 1.9.2, and a Jellyfin 12
+    // server read "ABI 10.11". Filled once per page from /Plugins (the
+    // plugin's own entry, admin only) and /System/Info/Public.
+    var heroMeta = { version: '', server: '', statusLabel: 'Active' };
+    var heroMetaLoaded = false;
+    var PLUGIN_GUID = 'd9f4b7d2-6c4d-4d7e-9d2d-1c6b4f8e2a11';
+    function heroMetaHeaders() {
+        var h = {};
+        try {
+            var ac = getApi();
+            var t = ac && typeof ac.accessToken === 'function' ? ac.accessToken() : null;
+            if (!t && ac && ac._serverInfo) t = ac._serverInfo.AccessToken;
+            if (t) { h['Authorization'] = 'MediaBrowser Token="' + t + '"'; h['X-Emby-Token'] = t; }
+        } catch (_) {}
+        return h;
+    }
+    function heroMetaUrl(path) {
+        var ac = getApi();
+        return (ac && typeof ac.getUrl === 'function') ? ac.getUrl(path) : '/' + path;
+    }
+    function loadHeroMeta(onChange) {
+        if (heroMetaLoaded) return;
+        heroMetaLoaded = true;
+        var headers = heroMetaHeaders();
+        var opts = { headers: headers, credentials: 'include' };
+        Promise.all([
+            fetch(heroMetaUrl('Plugins'), opts).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+            fetch(heroMetaUrl('System/Info/Public'), opts).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+        ]).then(function (res) {
+            var plugins = res[0], sys = res[1];
+            if (Array.isArray(plugins)) {
+                for (var i = 0; i < plugins.length; i++) {
+                    var pl = plugins[i] || {};
+                    if (String(pl.Id || '').toLowerCase() === PLUGIN_GUID) {
+                        if (pl.Version) heroMeta.version = String(pl.Version);
+                        if (pl.Status) heroMeta.statusLabel = String(pl.Status);
+                        break;
+                    }
+                }
+            }
+            if (sys && sys.Version) heroMeta.server = String(sys.Version);
+            if (typeof onChange === 'function') onChange();
+        });
+    }
+    function heroMetaFields() {
+        return { version: heroMeta.version, server: heroMeta.server, statusLabel: heroMeta.statusLabel };
+    }
+
     function buildPluginHero(plugin) {
         var s = plugin || {};
         return '' +
@@ -857,8 +923,8 @@ font-size:0.88em;
                     '<h1 class="abPluginHeroTitle">Achievement Badges</h1>' +
                     '<div class="abPluginHeroMeta">' +
                         '<span><span class="abStatusDot"></span>' + escapeHtml(s.statusLabel || 'Active') + '</span>' +
-                        '<span>v' + escapeHtml(s.version || '1.8.26') + '</span>' +
-                        '<span>Jellyfin ABI ' + escapeHtml(s.targetAbi || '10.11.0.0') + '</span>' +
+                        (s.version ? '<span>v' + escapeHtml(s.version) + '</span>' : '') +
+                        (s.server ? '<span>Jellyfin ' + escapeHtml(s.server) + '</span>' : '') +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -943,8 +1009,15 @@ font-size:0.88em;
         // 1. Plugin admin overview hero.
         var pluginHero = document.createElement('section');
         pluginHero.id = 'abPluginHero';
-        pluginHero.innerHTML = buildPluginHero({
-            version: '1.9.2', targetAbi: '10.11.0.0', statusLabel: 'Active'
+        pluginHero.innerHTML = buildPluginHero(heroMetaFields());
+        loadHeroMeta(function () {
+            // Re-render with the same KPIs the last rebuild produced.
+            var kpis = pluginHero.getAttribute('data-ab-kpis');
+            var extra = {};
+            try { extra = kpis ? JSON.parse(kpis) : {}; } catch (_) {}
+            var merged = heroMetaFields();
+            for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) merged[k] = extra[k];
+            pluginHero.innerHTML = buildPluginHero(merged);
         });
 
         // 2. Admin groups (4 thematic sections, each carries its own
@@ -1077,11 +1150,11 @@ font-size:0.88em;
                     personalStats.subtitle = safeText('abProfileSubtitle', personalStats.subtitle);
                     personalHero.innerHTML = buildPersonalHero(personalStats);
                     // refresh plugin KPIs with what we know now
-                    pluginHero.innerHTML = buildPluginHero({
-                        version: '1.9.2', targetAbi: '10.11.0.0', statusLabel: 'Active',
-                        badges: cards.length || '—',
-                        unlocks: personalStats.unlocked || '—'
-                    });
+                    var heroFields = heroMetaFields();
+                    heroFields.badges = cards.length || '—';
+                    heroFields.unlocks = personalStats.unlocked || '—';
+                    pluginHero.setAttribute('data-ab-kpis', JSON.stringify({ badges: heroFields.badges, unlocks: heroFields.unlocks }));
+                    pluginHero.innerHTML = buildPluginHero(heroFields);
                     /* v1.8.46: animate KPI numerals from 0 → target. Skipped
                        for non-numeric values like "Active" or em dashes. */
                     countUpKpis(pluginHero);
@@ -2645,12 +2718,20 @@ font-size:0.88em;
         return fetch(url, init).then(function (response) {
             if (!response.ok) {
                 return response.text().then(function (text) {
-                    var msg = 'Request failed: ' + response.status;
+                    // [issue #97] Name the request. A bare "Request failed:
+                    // 400" cannot tell a failed reset from a failed reload
+                    // of the profile that follows it, and the two are
+                    // chained under one catch below.
+                    var where = ' (' + httpMethod + ' ' + path.replace(/^Plugins\/AchievementBadges\//, '') + ')';
+                    var msg = 'Request failed: ' + response.status + where;
                     try {
                         var body = JSON.parse(text);
-                        if (body && body.Message) msg = body.Message;
+                        if (body && body.Message) msg = body.Message + where;
                     } catch (e) {}
-                    throw new Error(msg);
+                    var err = new Error(msg);
+                    err.status = response.status;
+                    err.request = httpMethod + ' ' + path;
+                    throw err;
                 });
             }
             if (response.status === 204) return null;
@@ -3110,10 +3191,15 @@ font-size:0.88em;
         setStatus(tr('admin.msg.resetting', 'Resetting badges...'));
 
         fetchJson('Plugins/AchievementBadges/users/' + userId + '/reset', 'POST').then(function () {
-            return reloadAll();
-        }).then(function () {
-            setStatus(tr('admin.msg.reset_ok', 'Badges reset successfully.'));
-        }).catch(function (error) {
+            // The reset itself succeeded from here on: a failure in the
+            // reload must not be reported as a failed reset.
+            return reloadAll().then(function () {
+                setStatus(tr('admin.msg.reset_ok', 'Badges reset successfully.'));
+            }, function (error) {
+                setStatus(tr('admin.msg.reset_ok', 'Badges reset successfully.'));
+                setError(tr('admin.msg.badges_load_failed', 'Failed to load badges.') + ' ' + (error && error.message ? error.message : String(error)));
+            });
+        }, function (error) {
             setStatus('');
             setError(tr('admin.msg.reset_failed', 'Failed to reset badges.') + ' ' + (error && error.message ? error.message : String(error)));
         });
@@ -3226,10 +3312,26 @@ font-size:0.88em;
         clearError();
         setStatus(tr('admin.msg.scanning_history', 'Scanning watch history... this may take a while...'));
         fetchJson('Plugins/AchievementBadges/users/' + userId + '/backfill', 'POST').then(function (result) {
+            result = result || {};
+            if (result.Success === false) {
+                setStatus('');
+                setError(tr('admin.msg.backfill_failed', 'Backfill failed.') + ' ' + (result.Error || result.Message || ''));
+                return;
+            }
+            var summary = tr('admin.msg.scan_done', 'Watch history scan complete!') + ' ' + (result.MoviesWatched || 0) + ' ' + tr('recap.movies', 'Movies').toLowerCase() + ', ' + (result.EpisodesWatched || 0) + ' ' + tr('recap.episodes', 'Episodes').toLowerCase() + ', ' + (result.SeriesCompleted || 0) + ' ' + tr('lb.series', 'Series').toLowerCase() + (result.TracksPlayed ? ', ' + result.TracksPlayed + ' ' + tr('recap.tracks', 'Tracks').toLowerCase() : '') + ' ' + tr('admin.msg.found', 'found.');
+            // [issue #97] A scan that saw nothing is almost always a library
+            // access problem on the account, not a broken scan; the server
+            // says so and the message should too.
+            if (result.Hint) summary += ' ' + tr('admin.msg.scan_empty_hint', 'Jellyfin returned no played items for this account. The scan only sees libraries the account can access: check Dashboard > Users > this user > Access.');
+            // The scan itself succeeded from here on: a failure in the
+            // reload must not be reported as a failed scan.
             return reloadAll().then(function () {
-                setStatus(tr('admin.msg.scan_done', 'Watch history scan complete!') + ' ' + (result.MoviesWatched || 0) + ' ' + tr('recap.movies', 'Movies').toLowerCase() + ', ' + (result.EpisodesWatched || 0) + ' ' + tr('recap.episodes', 'Episodes').toLowerCase() + ', ' + (result.SeriesCompleted || 0) + ' ' + tr('lb.series', 'Series').toLowerCase() + (result.TracksPlayed ? ', ' + result.TracksPlayed + ' ' + tr('recap.tracks', 'Tracks').toLowerCase() : '') + ' ' + tr('admin.msg.found', 'found.'));
+                setStatus(summary);
+            }, function (error) {
+                setStatus(summary);
+                setError(tr('admin.msg.badges_load_failed', 'Failed to load badges.') + ' ' + (error && error.message ? error.message : String(error)));
             });
-        }).catch(function (err) {
+        }, function (err) {
             setStatus('');
             setError(tr('admin.msg.backfill_failed', 'Backfill failed.') + ' ' + (err && err.message ? err.message : String(err)));
         });

@@ -609,6 +609,7 @@
   "admin.msg.scanning_history": "扫描观看历史... 可能需要一些时间...",
   "admin.msg.scanning_all": "扫描所有用户的观看历史... 可能需要一些时间...",
   "admin.msg.scan_done": "观看历史扫描完成！",
+  "admin.msg.scan_empty_hint": "Jellyfin 没有为此账户返回任何已播放项目。扫描只能看到该账户有权访问的媒体库：请检查 控制台 > 用户 > 此用户 > 访问权限。",
   "admin.msg.scan_all_done": "所有用户的观看历史扫描完成！",
   "admin.msg.backfill_failed": "回填失败。",
   "admin.msg.found": "找到。",

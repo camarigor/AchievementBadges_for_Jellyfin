@@ -268,6 +268,12 @@
                 var id = getCurrentUserIdImmediate();
                 if (id) { finish(id); return; }
                 if (attempts >= MAX_ATTEMPTS) {
+                    // Stop ticking before the last-ditch request. fetchJson
+                    // itself waits up to 2s for a token, and while it waited
+                    // this interval kept firing, queueing a fresh Users/Me
+                    // every 200ms: on the login page that was ~25 requests
+                    // per caller, every one of them a 401.
+                    clearInterval(timer); timer = null;
                     // Last-ditch: ask the server who we are via the auth cookie/token.
                     fetchJson('Users/Me').then(function (me) {
                         finish(me && me.Id ? me.Id : '');

@@ -609,6 +609,7 @@
   "admin.msg.scanning_history": "Scan de l'historique... cela peut prendre un moment...",
   "admin.msg.scanning_all": "Scan de l'historique pour TOUS les utilisateurs... cela peut prendre un moment...",
   "admin.msg.scan_done": "Scan de l'historique terminé !",
+  "admin.msg.scan_empty_hint": "Jellyfin n'a renvoyé aucun élément lu pour ce compte. Le scan ne voit que les bibliothèques auxquelles le compte a accès : vérifiez Tableau de bord > Utilisateurs > cet utilisateur > Accès.",
   "admin.msg.scan_all_done": "Scan de l'historique terminé pour tous les utilisateurs !",
   "admin.msg.backfill_failed": "Échec du backfill.",
   "admin.msg.found": "trouvés.",

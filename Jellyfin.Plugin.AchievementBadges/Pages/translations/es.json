@@ -609,6 +609,7 @@
   "admin.msg.scanning_history": "Escaneando historial... esto puede tardar un rato...",
   "admin.msg.scanning_all": "Escaneando historial para TODOS los usuarios... esto puede tardar un rato...",
   "admin.msg.scan_done": "¡Escaneo de historial completo!",
+  "admin.msg.scan_empty_hint": "Jellyfin no devolvió elementos reproducidos para esta cuenta. El escaneo solo ve las bibliotecas a las que la cuenta tiene acceso: revisa Panel > Usuarios > este usuario > Acceso.",
   "admin.msg.scan_all_done": "¡Escaneo de historial completo para todos los usuarios!",
   "admin.msg.backfill_failed": "Backfill fallido.",
   "admin.msg.found": "encontradas.",

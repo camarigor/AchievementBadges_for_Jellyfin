@@ -609,6 +609,7 @@
   "admin.msg.scanning_history": "視聴履歴をスキャン中... しばらくかかります...",
   "admin.msg.scanning_all": "全ユーザーの視聴履歴をスキャン中... しばらくかかります...",
   "admin.msg.scan_done": "視聴履歴のスキャンが完了しました！",
+  "admin.msg.scan_empty_hint": "Jellyfin はこのアカウントの再生済みアイテムを返しませんでした。スキャンはアカウントがアクセスできるライブラリしか見ません。ダッシュボード > ユーザー > このユーザー > アクセス を確認してください。",
   "admin.msg.scan_all_done": "全ユーザーの視聴履歴のスキャンが完了しました！",
   "admin.msg.backfill_failed": "バックフィルに失敗しました。",
   "admin.msg.found": "件見つかりました。",
