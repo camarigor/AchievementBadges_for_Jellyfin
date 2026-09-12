@@ -22,6 +22,13 @@ public sealed class TargetProgressResult
 }
 
 /// <summary>
+/// [issue #129] What the admin page shows about the target cap: the value
+/// in the configuration, the value actually applied after clamping, how many
+/// distinct targets the enabled badges reference, and the names past the cap.
+/// </summary>
+public sealed record TargetCapSummary(int Configured, int Cap, int Observed, IReadOnlyList<string> Dropped);
+
+/// <summary>
 /// [issue #107] Computes the two targeted metrics against the library.
 /// <para>
 /// Kept out of LibraryCompletionService on purpose: that file already carries
@@ -374,6 +381,20 @@ public class TargetProgressService
         };
 
         return _libraryManager.GetItemsResult(query).Items;
+    }
+
+    /// <summary>The cap as the admin page reports it, for the enabled badges.</summary>
+    public TargetCapSummary Summarize()
+    {
+        return Summarize(_customBadges.GetEnabled(), Plugin.Instance?.Configuration?.MaxTargetedBadgeTargets);
+    }
+
+    /// <summary>Pure form of <see cref="Summarize()"/>: the same walk CollectTargets runs, without the log line.</summary>
+    public static TargetCapSummary Summarize(IEnumerable<CustomBadge> badges, int? configured)
+    {
+        var cap = EffectiveCap(configured);
+        var observed = ObservedTargets.Collect(badges, cap, out var dropped);
+        return new TargetCapSummary(configured ?? 50, cap, observed.Count, dropped);
     }
 
     /// <summary>The configured cap, kept inside the bounds the feature was sized for.</summary>

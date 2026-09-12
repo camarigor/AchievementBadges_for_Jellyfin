@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Jellyfin.Plugin.AchievementBadges.Api;
 using Jellyfin.Plugin.AchievementBadges.Configuration;
 using Jellyfin.Plugin.AchievementBadges.Helpers;
 using Jellyfin.Plugin.AchievementBadges.Models;
@@ -120,5 +121,74 @@ public class TargetProgressServiceTests
     public void TheCapIsClampedToTheBoundsTheFeatureWasSizedFor(int? configured, int expected)
     {
         Assert.Equal(expected, TargetProgressService.EffectiveCap(configured));
+    }
+
+    // [issue #129] The settings page reports the cap from the same walk that
+    // decides what gets computed, so what the admin sees is what runs.
+    [Fact]
+    public void TheSummaryCountsDistinctTargetsAndNamesTheOnesPastTheCap()
+    {
+        var wire = Guid.NewGuid();
+        var bad = Guid.NewGuid();
+        var badges = new[]
+        {
+            Targeted("The Wire (complete)", wire, "The Wire"),
+            Targeted("The Wire (again)", wire, "The Wire"),
+            Targeted("Breaking Bad (complete)", bad, "Breaking Bad"),
+            Targeted("Sopranos (complete)", Guid.NewGuid(), "The Sopranos"),
+            Targeted("Disabled one", Guid.NewGuid(), "Never counted", enabled: false),
+        };
+
+        var summary = TargetProgressService.Summarize(badges, 2);
+
+        Assert.Equal(2, summary.Configured);
+        Assert.Equal(2, summary.Cap);
+        Assert.Equal(2, summary.Observed);
+        Assert.Equal(new[] { "The Sopranos" }, summary.Dropped);
+    }
+
+    [Fact]
+    public void TheSummaryReportsTheClampedCapNextToTheConfiguredOne()
+    {
+        var summary = TargetProgressService.Summarize(Array.Empty<CustomBadge>(), 5000);
+        Assert.Equal(5000, summary.Configured);
+        Assert.Equal(TargetProgressService.MaxTargetCap, summary.Cap);
+        Assert.Equal(0, summary.Observed);
+        Assert.Empty(summary.Dropped);
+    }
+
+    [Fact]
+    public void TheCustomBadgesControllerExposesTheTargetSummary()
+    {
+        var method = typeof(CustomBadgesController).GetMethod("Targets");
+        Assert.NotNull(method);
+        var route = method.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.HttpGetAttribute), false)
+            .Cast<Microsoft.AspNetCore.Mvc.HttpGetAttribute>().Single();
+        Assert.Equal("targets", route.Template);
+    }
+
+    [Fact]
+    public void TheCustomBadgesControllerLetsTheAdminSetTheCap()
+    {
+        var method = typeof(CustomBadgesController).GetMethod("SetTargetCap");
+        Assert.NotNull(method);
+        var route = method.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.HttpPostAttribute), false)
+            .Cast<Microsoft.AspNetCore.Mvc.HttpPostAttribute>().Single();
+        Assert.Equal("targets", route.Template);
+        Assert.Equal(typeof(TargetCapRequest), method.GetParameters().Single().ParameterType);
+    }
+
+    private static CustomBadge Targeted(string badgeName, Guid targetId, string targetName, bool enabled = true)
+    {
+        return new CustomBadge
+        {
+            Name = badgeName,
+            Enabled = enabled,
+            Criteria = new CustomBadgeCriteria
+            {
+                Metric = AchievementMetric.ContainerCompletionPercent,
+                MetricParameter = targetId.ToString("N") + "|" + targetName,
+            },
+        };
     }
 }
