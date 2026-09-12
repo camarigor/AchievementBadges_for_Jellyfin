@@ -37,9 +37,22 @@ public sealed class TargetProgressResult
 /// folder member (a whole series dropped into a collection) through the
 /// first path.
 /// </para>
+/// <para>
+/// [issue #129] The per-play path used to ask the library once per target
+/// whether the played item sat under it, which is what made the target cap
+/// necessary at 50. It now reads the played item's ancestor ids once and
+/// tests each hierarchical target against that set; only collections and
+/// playlists still walk their members, since their membership is linked
+/// rather than hierarchical. The cap stays as the admin's ceiling and is
+/// clamped to <see cref="MinTargetCap"/>..<see cref="MaxTargetCap"/>.
+/// </para>
 /// </summary>
 public class TargetProgressService
 {
+    /// <summary>Bounds for MaxTargetedBadgeTargets, whatever the config file says.</summary>
+    public const int MinTargetCap = 1;
+    public const int MaxTargetCap = 1000;
+
     private static readonly BaseItemKind[] LeafKinds =
     {
         BaseItemKind.Movie,
@@ -143,11 +156,12 @@ public class TargetProgressService
             return result;
         }
 
+        var ancestors = AncestorsOf(item);
         foreach (var target in CollectTargets())
         {
             try
             {
-                if (!Contains(user, target, item))
+                if (!Contains(user, target, item, ancestors))
                 {
                     continue;
                 }
@@ -174,7 +188,7 @@ public class TargetProgressService
 
     private IReadOnlyList<ObservedTarget> CollectTargets()
     {
-        var cap = Plugin.Instance?.Configuration?.MaxTargetedBadgeTargets ?? 50;
+        var cap = EffectiveCap(Plugin.Instance?.Configuration?.MaxTargetedBadgeTargets);
         var targets = ObservedTargets.Collect(_customBadges.GetEnabled(), cap, out var dropped);
         if (dropped.Count > 0)
         {
@@ -362,20 +376,62 @@ public class TargetProgressService
         return _libraryManager.GetItemsResult(query).Items;
     }
 
-    private bool Contains(User user, ObservedTarget target, BaseItem item)
+    /// <summary>The configured cap, kept inside the bounds the feature was sized for.</summary>
+    public static int EffectiveCap(int? configured)
+    {
+        return Math.Clamp(configured ?? 50, MinTargetCap, MaxTargetCap);
+    }
+
+    /// <summary>
+    /// [issue #129] Whether a target can be decided without asking the library:
+    /// a name-only target always goes to Compute (which resolves it), and an
+    /// item target is a plain id comparison. Null means "look at the library".
+    /// </summary>
+    public static bool? DecideWithoutLibrary(ObservedTarget target, Guid itemId)
     {
         if (target.Id == Guid.Empty)
         {
-            // Unresolved targets are always recomputed: that pass is what
-            // resolves them.
             return true;
         }
 
         if (target.Metric == AchievementMetric.ItemPlayCount)
         {
-            return target.Id == item.Id;
+            return target.Id == itemId;
         }
 
+        return null;
+    }
+
+    /// <summary>A hierarchical target contains the item when it is one of the item's ancestors.</summary>
+    public static bool UnderAncestor(Guid targetId, IReadOnlySet<Guid> ancestors)
+    {
+        return ancestors.Contains(targetId);
+    }
+
+    private HashSet<Guid>? AncestorsOf(BaseItem item)
+    {
+        try
+        {
+            return new HashSet<Guid>(item.GetAncestorIds());
+        }
+        catch (Exception ex)
+        {
+            // The old per-target query still works; only the shortcut is lost.
+            _logger.LogDebug(ex, "[AchievementBadges] Could not read ancestors of {Item}; falling back to library queries", item.Id);
+            return null;
+        }
+    }
+
+    private bool Contains(User user, ObservedTarget target, BaseItem item, IReadOnlySet<Guid>? ancestors)
+    {
+        var decided = DecideWithoutLibrary(target, item.Id);
+        if (decided.HasValue)
+        {
+            return decided.Value;
+        }
+
+        // A target whose id no longer resolves goes to Compute, which re-resolves
+        // it by name and rewrites the badge; a resolved non-folder is a no-op there.
         if (_libraryManager.GetItemById(target.Id) is not Folder folder)
         {
             return true;
@@ -386,10 +442,20 @@ public class TargetProgressService
             return Leaves(user, folder).Any(l => l.Id == item.Id);
         }
 
+        if (ancestors is not null)
+        {
+            return UnderAncestor(target.Id, ancestors);
+        }
+
+        return ContainsByQuery(user, target.Id, item.Id);
+    }
+
+    private bool ContainsByQuery(User user, Guid targetId, Guid itemId)
+    {
         var query = new InternalItemsQuery(user)
         {
-            AncestorIds = new[] { target.Id },
-            ItemIds = new[] { item.Id },
+            AncestorIds = new[] { targetId },
+            ItemIds = new[] { itemId },
             Recursive = true,
             EnableTotalRecordCount = false,
         };

@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Plugin.AchievementBadges.Configuration;
+using Jellyfin.Plugin.AchievementBadges.Helpers;
+using Jellyfin.Plugin.AchievementBadges.Models;
 using Jellyfin.Plugin.AchievementBadges.Services;
 using MediaBrowser.Controller.Library;
 using Xunit;
@@ -67,5 +71,54 @@ public class TargetProgressServiceTests
     public void TheTargetCapHasASaneDefault()
     {
         Assert.Equal(50, new PluginConfiguration().MaxTargetedBadgeTargets);
+    }
+
+    // [issue #129] The per-play membership check no longer needs one library
+    // query per target: the played item's ancestors are read once and each
+    // hierarchical target is a set test. These pin the decision table.
+    [Fact]
+    public void ANameOnlyTargetAlwaysGoesToCompute()
+    {
+        var target = new ObservedTarget(AchievementMetric.ContainerCompletionPercent, "Breaking Bad", Guid.Empty, "Breaking Bad");
+        Assert.True(TargetProgressService.DecideWithoutLibrary(target, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void AnItemTargetIsAPlainIdComparison()
+    {
+        var id = Guid.NewGuid();
+        var target = new ObservedTarget(AchievementMetric.ItemPlayCount, id.ToString("N"), id, "Free Bird");
+        Assert.True(TargetProgressService.DecideWithoutLibrary(target, id));
+        Assert.False(TargetProgressService.DecideWithoutLibrary(target, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void AContainerTargetIsLeftToTheLibrary()
+    {
+        var target = new ObservedTarget(AchievementMetric.ContainerCompletionPercent, "x", Guid.NewGuid(), "The Wire");
+        Assert.Null(TargetProgressService.DecideWithoutLibrary(target, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void AHierarchicalTargetContainsTheItemWhenItIsAnAncestor()
+    {
+        var series = Guid.NewGuid();
+        var season = Guid.NewGuid();
+        var ancestors = new HashSet<Guid> { season, series, Guid.NewGuid() };
+        Assert.True(TargetProgressService.UnderAncestor(series, ancestors));
+        Assert.True(TargetProgressService.UnderAncestor(season, ancestors));
+        Assert.False(TargetProgressService.UnderAncestor(Guid.NewGuid(), ancestors));
+    }
+
+    [Theory]
+    [InlineData(null, 50)]
+    [InlineData(0, 1)]
+    [InlineData(-7, 1)]
+    [InlineData(50, 50)]
+    [InlineData(500, 500)]
+    [InlineData(5000, 1000)]
+    public void TheCapIsClampedToTheBoundsTheFeatureWasSizedFor(int? configured, int expected)
+    {
+        Assert.Equal(expected, TargetProgressService.EffectiveCap(configured));
     }
 }
