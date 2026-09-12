@@ -191,4 +191,37 @@ public class TargetProgressServiceTests
             },
         };
     }
+
+    // [issue #129] The settings page wires the cap to the two endpoints above.
+    [Fact]
+    public void TheSettingsPageWiresTheTargetCapToTheApi()
+    {
+        var html = ReadEmbedded("Pages.index.html");
+        var en = ReadEmbedded("Pages.translations.en.json");
+
+        foreach (var id in new[] { "abTargetCapValue", "abTargetCapSaveBtn", "abTargetCapStatus", "abTargetCapSummary" })
+        {
+            Assert.Contains("id=\"" + id + "\"", html);
+        }
+
+        Assert.Contains("fetchJson('Plugins/AchievementBadges/custom-badges/targets')", html);
+        Assert.Contains("fetchJson('Plugins/AchievementBadges/custom-badges/targets', 'POST', { MaxTargets: value })", html);
+        Assert.Contains("min=\"1\" max=\"1000\"", html);
+
+        foreach (var key in new[] { "admin.targets.cap_label", "admin.targets.cap_help", "admin.targets.summary", "admin.targets.clamped", "admin.targets.dropped", "admin.targets.invalid" })
+        {
+            Assert.Contains("\"" + key + "\":", en);
+            // Static labels carry the key in data-i18n; dynamic strings pass it to tr().
+            Assert.True(html.Contains("data-i18n=\"" + key + "\"", StringComparison.Ordinal) || html.Contains("tr('" + key + "'", StringComparison.Ordinal), key + " is not used by the page");
+        }
+    }
+
+    private static string ReadEmbedded(string suffix)
+    {
+        var assembly = typeof(Plugin).Assembly;
+        var name = assembly.GetManifestResourceNames().Single(n => n.EndsWith(suffix, StringComparison.Ordinal));
+        using var stream = assembly.GetManifestResourceStream(name)!;
+        using var reader = new System.IO.StreamReader(stream);
+        return reader.ReadToEnd();
+    }
 }
