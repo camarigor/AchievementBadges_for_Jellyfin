@@ -48,13 +48,14 @@ public sealed record TargetCapSummary(int Configured, int Cap, int Observed, IRe
 /// [issue #129] The per-play path used to ask the library once per target
 /// whether the played item sat under it, which is what made the target cap
 /// necessary at 50. It now reads the played item's ancestor ids once and
-/// tests each hierarchical target against that set; only collections and
-/// playlists still walk their members, since their membership is linked
-/// rather than hierarchical. The cap stays as the admin's ceiling and is
-/// clamped to <see cref="MinTargetCap"/>..<see cref="MaxTargetCap"/>.
+/// tests each hierarchical target against that set. Collections and playlists
+/// have no such index, so their member ids are cached per target
+/// (<see cref="LinkedTargetMembers"/>), dropped when Jellyfin reports the
+/// container changed. The cap stays as the admin's ceiling and is clamped to
+/// <see cref="MinTargetCap"/>..<see cref="MaxTargetCap"/>.
 /// </para>
 /// </summary>
-public class TargetProgressService
+public class TargetProgressService : IDisposable
 {
     /// <summary>Bounds for MaxTargetedBadgeTargets, whatever the config file says.</summary>
     public const int MinTargetCap = 1;
@@ -75,6 +76,8 @@ public class TargetProgressService
     private readonly CustomBadgeService _customBadges;
     private readonly AchievementBadgeService _badgeService;
     private readonly ILogger<TargetProgressService> _logger;
+    private readonly LinkedTargetMembers _linkedMembers = new();
+    private bool _disposed;
 
     public TargetProgressService(
         ILibraryManager libraryManager,
@@ -90,6 +93,10 @@ public class TargetProgressService
         _customBadges = customBadges;
         _badgeService = badgeService;
         _logger = logger;
+        // [issue #129] Adding or removing a member updates the collection or
+        // playlist item, which is the signal to drop its cached member set.
+        _libraryManager.ItemUpdated += OnItemChanged;
+        _libraryManager.ItemRemoved += OnItemChanged;
     }
 
     /// <summary>
@@ -460,7 +467,9 @@ public class TargetProgressService
 
         if (IsLinkedContainer(folder))
         {
-            return Leaves(user, folder).Any(l => l.Id == item.Id);
+            // User-agnostic on purpose: the set answers membership only, and
+            // Compute re-reads the members through the user's own view.
+            return _linkedMembers.Contains(folder.Id, item.Id, () => LeafIdsOfLinked(folder));
         }
 
         if (ancestors is not null)
@@ -469,6 +478,55 @@ public class TargetProgressService
         }
 
         return ContainsByQuery(user, target.Id, item.Id);
+    }
+
+    /// <summary>Leaf ids of a collection or playlist without a user filter,
+    /// folder members expanded the way <see cref="Leaves"/> does.</summary>
+    private IEnumerable<Guid> LeafIdsOfLinked(Folder folder)
+    {
+        foreach (var child in folder.GetLinkedChildren())
+        {
+            if (child is Folder inner)
+            {
+                var query = new InternalItemsQuery
+                {
+                    IncludeItemTypes = LeafKinds,
+                    AncestorIds = new[] { inner.Id },
+                    Recursive = true,
+                    EnableTotalRecordCount = false,
+                };
+                foreach (var leaf in _libraryManager.GetItemsResult(query).Items)
+                {
+                    yield return leaf.Id;
+                }
+            }
+            else
+            {
+                yield return child.Id;
+            }
+        }
+    }
+
+    private void OnItemChanged(object? sender, ItemChangeEventArgs e)
+    {
+        if (e?.Item is not null && _linkedMembers.Invalidate(e.Item.Id))
+        {
+            _logger.LogDebug("[AchievementBadges] Dropped cached members of {Id} after a library change", e.Item.Id);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _libraryManager.ItemUpdated -= OnItemChanged;
+        _libraryManager.ItemRemoved -= OnItemChanged;
+        _linkedMembers.Clear();
+        GC.SuppressFinalize(this);
     }
 
     private bool ContainsByQuery(User user, Guid targetId, Guid itemId)
